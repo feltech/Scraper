@@ -1,37 +1,36 @@
 /*global angular,CasperError*/
-var step = 0,
+var POSTCODE = "CT27NY",
+	step = 0,
 	casper = require("casper").create({
-		verbose: false,
+		verbose: true,
+		logLevel: "warning",
 		onError: function () {
 			casper.capture("/tmp/" + (step++) + ".ERROR.png");
 		}
 	}),
 	x = require('casper').selectXPath,
 	_ = require('lodash'),
-	s = require("underscore.string"),
 	dump = require('utils').dump,
 	codes = [],
 	numCodePages = 4,
 	currCodePage = 0;
-
-_.mixin(s.exports());
 
 CasperError = Error;
 
 function capture(name) {
 	casper.then(function () {
 		this.echo(name);
-//		this.capture("/tmp/" + (step++) + "." + name + ".png");
+		this.capture("/tmp/" + (step++) + "." + name + ".png");
 	});
 }
 
 function getCodes() {
+
 	var pageCodes = this.getElementsAttribute("input.voucherReveal-peel-bottom-code", "value"),
 		pageDescs = this.getElementsInfo("h2.thread-title-text").map(function (info) {
 			return info.text;
 		}),
 		pageCodeData;
-
 	if (pageCodes.length !== pageDescs.length) {
 		this.die(
 			"Error: pageCodes.length !== pageDescs.length: " +
@@ -40,7 +39,7 @@ function getCodes() {
 	}
 
 	pageCodeData = _(pageCodes)
-					.map(s.trim)
+					.map(function (code) { return code.trim(); })
 					.zip(pageDescs)
 					.map(_.partial(_.zipObject, ["code", "description"]))
 					.filter(_.partial(_.get, _, "code", null))
@@ -50,6 +49,10 @@ function getCodes() {
 }
 
 casper.start("http://www.hotukdeals.com/vouchers/dominos.co.uk");
+
+casper.then(function () {
+	this.echo("On voucher page");
+});
 
 for (currCodePage = 0; currCodePage < numCodePages; currCodePage++)
 {
@@ -64,7 +67,9 @@ for (currCodePage = 0; currCodePage < numCodePages; currCodePage++)
 
 casper.then(function () {
 	casper.echo(
-		"Codes: " + _(codes).map(_.partial(_.get, _, "code", "-error-")).toSentence().value()
+		"Codes: " + _(codes).map(function (code) {
+			return code.code || "-error-";
+		}).value().join(", ")
 	);
 });
 
@@ -75,8 +80,9 @@ capture("Dominos homepage");
 casper.waitForSelector("#store-finder-search");
 
 casper.then(function () {
+	casper.echo("Searching for store");
 	this.fillSelectors("#store-finder-search", {
-		"input[type='text']": "CT27NY"
+		"input[type='text']": POSTCODE
 	});
 });
 
@@ -87,6 +93,8 @@ casper.thenClick("#btnStoreSearch");
 casper.waitForSelector(x("//button[text()='Deliver To Me'][@ng-click]"));
 
 casper.then(function () {
+	casper.echo("Checking dominos is open");
+
 	var isOpen;
 	if (!this.exists(x("//button[text()='Deliver To Me'][@ng-click]"))) {
 		isOpen = this.evaluate(function () {
@@ -104,11 +112,11 @@ capture("choose delivery");
 
 casper.thenClick(x("//button[text()='Deliver To Me'][@ng-click]"));
 
-casper.waitForSelector("button[title='Add Original Cheese & Tomato to your order']");
+casper.waitForSelector("button[title='Add Vegi Supreme to your order']");
 
 capture("pick a pizza");
 
-casper.thenClick("button[title='Add Original Cheese & Tomato to your order']");
+casper.thenClick("button[title='Add Vegi Supreme to your order']");
 
 casper.waitForSelector("#add-to-order");
 
@@ -116,7 +124,7 @@ capture("add to order");
 
 casper.thenClick("#add-to-order");
 
-casper.waitForSelector("button[title='Add Original Cheese & Tomato to your order']");
+casper.waitForSelector("button[title='Add Vegi Supreme to your order']");
 
 capture("view basket");
 
