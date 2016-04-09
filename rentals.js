@@ -1,7 +1,7 @@
 /*global angular,CasperError,$*/
+
 var step = 0,
 	Casper = require("casper"),
-	x = require('casper').selectXPath,
 	_ = require('lodash'),
 	s = require("underscore.string"),
 	dump = require('utils').dump,
@@ -20,26 +20,56 @@ var step = 0,
 	minRating = parseFloat(casper.cli.args[1] || "6.0", 10),
 	noop = function () {};
 
-
 _.mixin(s.exports());
 
 
 CasperError = Error;
 
+casper.echo("Starting");
+
+function imdbLink (title) {
+	var deferred = Q.defer(),
+		page = Casper.create(options);
+
+	page.start(
+		"http://www.imdb.com/find?q=" + encodeURIComponent(title.name)
+	);
+
+	page.waitForSelector("#main");
+
+	page.then(function () {
+		title.url = this.evaluate(function () {
+			if ($("td.result_text > a").length === 0) {
+				return null;
+			}
+
+			return $("td.result_text > a").first().prop("href");
+		});
+
+		if (!title.url) {
+			this.echo("IMDB link not found for '" + title.name + "'");
+		} else {
+			this.echo("IMDB link for '" + title.name + "' is " + title.url);
+		}
+
+		deferred.resolve(title);
+	});
+
+	page.run(noop);
+
+	return deferred.promise;
+}
 
 function imdb(title) {
 	var deferred = Q.defer(),
 		page = Casper.create(options);
 
-	page.start(
-		"https://duckduckgo.com/?q=!ducky+imdb+" + encodeURIComponent(title.name)
-	);
+	page.start(title.url);
 
 	page.waitForSelector("span#titleYear > a");
 
 	page.then(function () {
 		var imdbInfo;
-
 		this.echo("Parsing IMDB info for '" + title.name + "' from " + this.getCurrentUrl());
 
 		imdbInfo = this.evaluate(function () {
@@ -48,11 +78,11 @@ function imdb(title) {
 			}
 
 			function num(selector) {
-				return parseFloat($(selector).contents().not($(selector).children()).text().trim());
+				return parseFloat(text(selector), 10);
 			}
 
 			return {
-				rating: num("span.rating-rating > span.value"),
+				rating: num("span[itemprop='ratingValue']"),
 				name: text("h1[itemprop='name']"),
 				year: num("span#titleYear > a"),
 				description: text("div[itemprop='description'] > p"),
@@ -62,7 +92,9 @@ function imdb(title) {
 			};
 		});
 
-		_(title).extend(imdbInfo, { url: this.getCurrentUrl() }).value();
+		dump(imdbInfo);
+
+		_.extend(title, imdbInfo);
 
 		deferred.resolve(title);
 	});
@@ -142,8 +174,18 @@ function charts() {
 
 
 charts().then(function (titles) {
+	return Q.all(titles.map(imdbLink));
+}).then(function (titles) {
+	titles = titles.filter(function (title) {
+		return !!title.url;
+	});
 	return Q.all(titles.map(imdb));
 }).then(function (titles) {
+	titles = titles.filter(function (title) {
+		return title.rating >= minRating;
+	});
+
+	dump(titles);
 	return Q.all(titles.map(piratebay));
 }).then(function (titles) {
 	var server = webserver.create();
@@ -172,7 +214,6 @@ charts().then(function (titles) {
 				"<a href='" + title.url + "'>" + title.url + "</a>" +
 				"<br /><a href='" + title.search + "'>" + title.search + "</a><ul>";
 			title.download.forEach(function (download) {
-				console.log(download.link);
 				html += "<li><a href='" + download.link + "'>" + download.description +
 					"</a></li>";
 			});
