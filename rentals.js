@@ -12,6 +12,7 @@ var step = 0,
 		verbose: true,
 		logLevel: "warning",
 		onError: function () {
+			this.echo("ERROR " + arguments);
 			this.capture("/tmp/" + (step++) + ".ERROR.png");
 		}
 	},
@@ -26,14 +27,19 @@ _.mixin(s.exports());
 CasperError = Error;
 
 casper.echo("Starting");
+casper.start("about:blank");
 
 function imdbLink (title) {
 	var deferred = Q.defer(),
-		page = Casper.create(options);
+		page = casper;//Casper.create(options);
 
-	page.start(
+	page.thenOpen(
 		"http://www.imdb.com/find?q=" + encodeURIComponent(title.name)
 	);
+
+	page.then(function () {
+		page.echo("Started searching IMDB link for '" + title.name + "'");
+	});
 
 	page.waitForSelector("#main");
 
@@ -62,9 +68,9 @@ function imdbLink (title) {
 
 function imdb(title) {
 	var deferred = Q.defer(),
-		page = Casper.create(options);
+		page = casper;//Casper.create(options);
 
-	page.start(title.url);
+	page.thenOpen(title.url);
 
 	page.waitForSelector("span#titleYear > a");
 
@@ -107,9 +113,9 @@ function imdb(title) {
 
 function piratebay(title) {
 	var deferred = Q.defer(),
-		page = Casper.create(options);
+		page = casper;//Casper.create(options);
 
-	page.start(
+	page.thenOpen(
 		"http://thepiratebay.se/search/" +
 		encodeURIComponent(title.name + " " + title.year + " jyk")
 	);
@@ -145,10 +151,11 @@ casper.echo(
 
 
 function charts() {
-	var page = Casper.create(options),
-		deferred = Q.defer();
+	var deferred = Q.defer(),
+		page = casper;//Casper.create(options);
 
-	page.start("http://www.officialcharts.com/charts/film-on-video-chart/");
+
+	page.thenOpen("http://www.officialcharts.com/charts/film-on-video-chart/");
 
 	page.then(function () {
 		var titles = this.evaluate(function () {

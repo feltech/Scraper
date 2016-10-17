@@ -6,7 +6,9 @@ var POSTCODE = "CT27NY",
 		logLevel: "warning",
 		onError: function () {
 			casper.capture("/tmp/" + (step++) + ".ERROR.png");
-		}
+		},
+		waitTimeout: 5000,
+		viewportSize: {width: 1280, height: 1024}
 	}),
 	x = require('casper').selectXPath,
 	_ = require('lodash'),
@@ -17,6 +19,12 @@ var POSTCODE = "CT27NY",
 
 CasperError = Error;
 
+function say(text) {
+	casper.then(function () {
+		this.echo("--- " + text);
+	});
+}
+
 function capture(name) {
 	casper.then(function () {
 		this.echo(name);
@@ -24,10 +32,11 @@ function capture(name) {
 	});
 }
 
-function getCodes() {
 
+
+function getCodes() {
 	var pageCodes = this.getElementsAttribute("input.voucherReveal-peel-bottom-code", "value"),
-		pageDescs = this.getElementsInfo("h2.thread-title-text").map(function (info) {
+		pageDescs = this.getElementsInfo("p.thread-title-text").map(function (info) {
 			return info.text;
 		}),
 		pageCodeData;
@@ -38,6 +47,8 @@ function getCodes() {
 		);
 	}
 
+	casper.echo("Got codes: " + pageCodes);
+
 	pageCodeData = _(pageCodes)
 					.map(function (code) { return code.trim(); })
 					.zip(pageDescs)
@@ -46,13 +57,12 @@ function getCodes() {
 					.value();
 
 	[].push.apply(codes, pageCodeData);
+
 }
 
 casper.start("http://www.hotukdeals.com/vouchers/dominos.co.uk");
 
-casper.then(function () {
-	this.echo("On voucher page");
-});
+say("on voucher page");
 
 for (currCodePage = 0; currCodePage < numCodePages; currCodePage++)
 {
@@ -60,27 +70,24 @@ for (currCodePage = 0; currCodePage < numCodePages; currCodePage++)
 
 	casper.then(getCodes);
 
+	casper.then(function () {
+		this.echo("--- going to next page");
+	});
+
 	casper.thenClick("a.paginationButton--arrow-next");
 
 	casper.waitForSelectorTextChange("span.paginationButton--current");
 }
 
-casper.then(function () {
-	casper.echo(
-		"Codes: " + _(codes).map(function (code) {
-			return code.code || "-error-";
-		}).value().join(", ")
-	);
-});
-
-casper.thenOpen("https://www.dominos.co.uk/store");
+casper.thenOpen("https://www.dominos.co.uk");
 
 capture("Dominos homepage");
 
 casper.waitForSelector("#store-finder-search");
 
+say("searching for store");
+
 casper.then(function () {
-	casper.echo("Searching for store");
 	this.fillSelectors("#store-finder-search", {
 		"input[type='text']": POSTCODE
 	});
@@ -88,55 +95,65 @@ casper.then(function () {
 
 capture("find store");
 
-casper.thenClick("#btnStoreSearch");
+say("waiting for store search button");
 
-casper.waitForSelector(x("//button[text()='Deliver To Me'][@ng-click]"));
+casper.waitForSelector("#btn-delivery");
 
-casper.then(function () {
-	casper.echo("Checking dominos is open");
+say("clicking to search for store");
 
-	var isOpen;
-	if (!this.exists(x("//button[text()='Deliver To Me'][@ng-click]"))) {
-		isOpen = this.evaluate(function () {
-			return !!angular.element("div.store-fulfilment").scope().store.isOpen;
-		});
-		if (isOpen) {
-			this.die("Store is open but 'Deliver To Me' not found");
-		} else {
-			this.die("Your local Dominos is closed, so cannot try vouchers at this time");
-		}
-	}
-});
+casper.thenClick("#btn-delivery");
 
-capture("choose delivery");
+//say("waiting for Deliver To Me button");
+//
+//casper.waitForSelector(x("//button[text()='Deliver To Me'][@ng-click]"));
+//
+//say("checking dominos is open");
+//
+//casper.then(function () {
+//	var isOpen;
+//	if (!this.exists(x("//button[text()='Deliver To Me'][@ng-click]"))) {
+//		isOpen = this.evaluate(function () {
+//			return !!angular.element("div.store-fulfilment").scope().store.isOpen;
+//		});
+//		if (isOpen) {
+//			this.die("Store is open but 'Deliver To Me' not found");
+//		} else {
+//			this.die("Your local Dominos is closed, so cannot try vouchers at this time");
+//		}
+//	} else {
+//		this.echo("--- store is open!")
+//	}
+//});
+//
+//capture("choose delivery");
+//
+//casper.thenClick(x("//button[text()='Deliver To Me'][@ng-click]"));
 
-casper.thenClick(x("//button[text()='Deliver To Me'][@ng-click]"));
+say("waiting for the menu to show");
 
-casper.waitForSelector("button[title='Add Vegi Supreme to your order']");
+casper.waitForSelector("button[title='Add Vegi Supreme to my order']");
 
 capture("pick a pizza");
 
-casper.thenClick("button[title='Add Vegi Supreme to your order']");
+casper.thenClick("button[title='Add Vegi Supreme to my order']");
 
-casper.waitForSelector("#add-to-order");
-
-capture("add to order");
-
-casper.thenClick("#add-to-order");
-
-casper.waitForSelector("button[title='Add Vegi Supreme to your order']");
-
-capture("view basket");
+say("going to basket");
 
 casper.thenClick("a.nav-link-basket");
+
+capture("view basket");
 
 casper.waitForSelector("div.voucher-code-input");
 
 capture("enter vouchers");
 
+say("entering codes...");
+
 casper.then(function () {
 
 	codes.forEach(function (code) {
+
+		say("entering code: " + code.code);
 
 		this.then(function () {
 			this.fillSelectors("div.voucher-code-input > form", { "input[type='text']": code.code });
