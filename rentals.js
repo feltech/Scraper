@@ -188,7 +188,7 @@ charts().then(function (titles) {
 	this.echo("writing html");
 
 
-	fs.write("movierentals.html", html, "wb");
+	fs.write("movierentals.html", html, { mode: "w", charset: "utf-8" });
 });
 
 casper.run();

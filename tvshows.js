@@ -265,7 +265,7 @@ scrapeShows = reportErrors(function (casper) {
 
 		this.echo("writing html");
 
-		fs.write("tvshows.html", html, "wb");
+		fs.write("tvshows.html", html, { mode: "w", charset: "utf-8" });
 	}));
 });
 
