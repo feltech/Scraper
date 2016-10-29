@@ -1,0 +1,52 @@
+<html>
+	<head>
+		<meta charset="utf-8"/>
+		<title>Telescuff - Top TV Shows</title> 
+		<link 
+			rel='stylesheet' 
+			href='https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css' /> 
+		<script src='https://code.jquery.com/jquery-3.1.1.slim.min.js'></script>
+		<script src='https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js'></script>
+	</head>
+	<body>  
+		<nav class='navbar navbar-default'>
+			<div class='container-fluid'>
+				<div class='navbar-header'>
+					<button 
+						type="button" class="navbar-toggle collapsed"
+						data-toggle="collapse" data-target="#navbar-links"
+						aria-expanded="false"
+					>
+						<span class="icon-bar"></span> 
+						<span class="icon-bar"></span> 
+						<span class="icon-bar"></span>
+					</button>
+					<a class='navbar-brand' href='index.html'>Telescuff 
+					<small>- TV & movie data scraped from the web</small></a>
+				</div>
+		
+				<div class='collapse navbar-collapse' id='navbar-links'>
+					<ul class='nav navbar-nav'>
+						<li <% if (page === "tvshows") { %>class='active'<% } %>><a
+							href='tvshows.html'>Top TV Shows</a></li>
+						<li <% if (page === "movierentals") { %>class='active'<% } %>><a
+							href='movierentals.html'>Top Movie Rentals</a></li>
+					</ul>
+		
+					<p class='navbar-text navbar-right'>Updated 
+						<%= (new Date()).toUTCString() %>
+					</p>
+				</div>
+			</div>
+		</nav>
+		<div class='page-header'><h1><%= headerTitle %>  
+			<small> - <%= headerSubtitle %></small></h1></div> 
+		<table class='table table-striped'>
+		<%= tableContent %>
+		</table>
+			
+		<footer class='text-center bg-info'>List scraped from 
+			<a href='<%= listSrcURL %>'><%= listSrcName %></a>.  
+			Info scraped from <a href='http://www.imdb.com'>IMDB</a>.</footer> 
+	</body>
+</html>

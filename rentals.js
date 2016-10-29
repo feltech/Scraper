@@ -3,31 +3,54 @@
 var step = 0,
 	Casper = require("casper"),
 	_ = require('lodash'),
-	s = require("underscore.string"),
-	dump = require('utils').dump,
-	webserver = require('webserver'),
-	execFile = require("child_process").execFile,
 	Q = require("q"),
+	fs = require("fs"),
 	options = {
 		verbose: true,
 		logLevel: "warning",
+		waitTimeout: 60000,
 		onError: function () {
 			this.echo("ERROR " + arguments);
 			this.capture("/tmp/" + (step++) + ".ERROR.png");
 		}
 	},
 	casper = Casper.create(options),
-	numWeeks = parseInt(casper.cli.args[0] || "4", 10),
+	numWeeks = parseInt(casper.cli.args[0] || "8", 10),
 	minRating = parseFloat(casper.cli.args[1] || "6.0", 10),
 	noop = function () {};
 
-_.mixin(s.exports());
-
-
-CasperError = Error;
 
 casper.echo("Starting");
 casper.start("about:blank");
+
+
+function charts() {
+	var deferred = Q.defer(),
+		page = casper;//Casper.create(options);
+
+
+	page.thenOpen("http://www.officialcharts.com/charts/film-on-video-chart/");
+
+	page.then(function () {
+		var titles = this.evaluate(function () {
+			return $("table.chart-positions tr").not("[class]").map(function () {
+				return {
+					weeks: parseInt($("td", this).last().prev().text().trim(), 10),
+					name: $("div.title", this).text().trim()
+				};
+			}).toArray();
+		});
+
+		titles = _(titles).filter(function (title) {
+			return title.weeks <= numWeeks;
+		}).sortBy('weeks').value();
+
+		deferred.resolve(titles);
+	});
+
+	return deferred.promise;
+}
+
 
 function imdbLink (title) {
 	var deferred = Q.defer(),
@@ -55,24 +78,28 @@ function imdbLink (title) {
 		if (!title.url) {
 			this.echo("IMDB link not found for '" + title.name + "'");
 		} else {
+			title.url = title.url.split("?")[0];
 			this.echo("IMDB link for '" + title.name + "' is " + title.url);
 		}
 
 		deferred.resolve(title);
 	});
 
-	page.run(noop);
-
 	return deferred.promise;
 }
+
 
 function imdb(title) {
 	var deferred = Q.defer(),
 		page = casper;//Casper.create(options);
 
+	page.then(function () {
+		page.echo("Opening IMDB info for '" + title.name + "' from " + title.url);
+	});
+
 	page.thenOpen(title.url);
 
-	page.waitForSelector("span#titleYear > a");
+	page.waitForSelector("[itemprop='name']");
 
 	page.then(function () {
 		var imdbInfo;
@@ -98,48 +125,10 @@ function imdb(title) {
 			};
 		});
 
-		dump(imdbInfo);
-
 		_.extend(title, imdbInfo);
 
 		deferred.resolve(title);
 	});
-
-	page.run(noop);
-
-	return deferred.promise;
-}
-
-
-function piratebay(title) {
-	var deferred = Q.defer(),
-		page = casper;//Casper.create(options);
-
-	page.thenOpen(
-		"http://thepiratebay.se/search/" +
-		encodeURIComponent(title.name + " " + title.year + " jyk")
-	);
-
-	page.then(function () {
-
-		_(title).extend({
-			download: this.evaluate(function () {
-				return $("a.detLink").map(function () {
-					return {
-						link: $(this).prop("href"),
-						description: $(this).text().trim()
-					};
-				}).toArray();
-			}) || [],
-
-			search: "http://thepiratebay.se/search/" +
-				encodeURIComponent(title.name + " " + title.year)
-		}).value();
-
-		deferred.resolve(title);
-	});
-
-	page.run(noop);
 
 	return deferred.promise;
 }
@@ -150,90 +139,56 @@ casper.echo(
 );
 
 
-function charts() {
-	var deferred = Q.defer(),
-		page = casper;//Casper.create(options);
-
-
-	page.thenOpen("http://www.officialcharts.com/charts/film-on-video-chart/");
-
-	page.then(function () {
-		var titles = this.evaluate(function () {
-			return $("table.chart-positions tr").not("[class]").map(function () {
-				return {
-					weeks: parseInt($("td", this).last().prev().text().trim(), 10),
-					name: $("div.title", this).text().trim()
-				};
-			}).toArray();
-		});
-
-		titles = _(titles).filter(function (title) {
-			return title.weeks <= numWeeks;
-		}).sortBy('weeks').value();
-
-		deferred.resolve(titles);
-	});
-
-	page.run(noop);
-
-	return deferred.promise;
-}
-
-
 charts().then(function (titles) {
 	return Q.all(titles.map(imdbLink));
 }).then(function (titles) {
 	titles = titles.filter(function (title) {
 		return !!title.url;
 	});
+	titles = _.uniqBy(titles, "url");
 	return Q.all(titles.map(imdb));
 }).then(function (titles) {
+	var html;
+
 	titles = titles.filter(function (title) {
 		return title.rating >= minRating;
 	});
 
-	dump(titles);
-	return Q.all(titles.map(piratebay));
-}).then(function (titles) {
-	var server = webserver.create();
+	this.echo("constructing html for remaining " + titles.length + " shows");
 
-	server.listen(3000, function (request, response) {
-		var html = "";
+	html = "<thead><th>Title</th><th>Rating</th><th>Weeks</th><th>Genre</th</thead><tbody>";
 
-		response.statusCode = 200;
-		response.headers = {
-			'Cache': 'no-cache',
-			'Content-Type': 'text/html'
-		};
-		html += "<html><head><title>New Releases</title>" +
-				"<link rel='stylesheet' href='https://maxcdn.bootstrapcdn.com/bootstrap/" +
-				"3.3.6/css/bootstrap.min.css' integrity='sha384-1q8mTJOASx8j1Au+a5WDVnPi" +
-				"2lkFfwwEAa8hDDdjZlpLegxhjVME1fgjWPGmkzs7' crossorigin='anonymous'>" +
-				"</head><body>" +
-				"<table class='table table-striped'><thead><th>Title</th><th>Rating</th>" +
-				"<th>Weeks</th><th>Genre</th</thead><tbody>";
-
-		titles.forEach(function (title) {
-			html += "<tr><th>" + title.name + " (" + title.year + ")" + "</th><th>" +
-				(title.rating && title.rating.toFixed(2) || "???") +
-				"</th><th>" + title.weeks + "</th><th>" + title.genre +  "</th></tr>" +
-				"<tr><td colspan=4>" + title.description + "<br/>" +
-				"<a href='" + title.url + "'>" + title.url + "</a>" +
-				"<br /><a href='" + title.search + "'>" + title.search + "</a><ul>";
-			title.download.forEach(function (download) {
-				html += "<li><a href='" + download.link + "'>" + download.description +
-					"</a></li>";
-			});
-			html += "</ul></td></tr>";
-		});
-
-		html += "</tbody></table></body></html>";
-
-		response.write(html);
-		response.close();
-
-		casper.exit();
+	titles.forEach(function (title) {
+		html += "<tr><th>" + title.name + " (" + title.year + ")" + "</th><th>" +
+			(title.rating && title.rating.toFixed(2) || "???") +
+			"</th><th>" + title.weeks + "</th><th>" + title.genre +  "</th></tr>" +
+			"<tr><td colspan=4>" + title.description + "<br/>" +
+			"<a href='" + title.url + "'>" + title.url + "</a></td></tr>";
 	});
 
-	execFile("xdg-open", ['http://localhost:3000']);
+	html += "</tbody>";
+
+	this.echo("reading ejs source");
+
+	tmpl = fs.read("body.ejs");
+
+	this.echo("creating template from ejs");
+
+	tmpl = _.template(tmpl);
+
+	this.echo("generating html");
+
+	html = tmpl({
+		page: "movierentals", headerTitle: "Top Movie Rentals",
+		headerSubtitle: "overview of highly rated movie rentals from the last",
+		tableContent: html, listSrcURL: "http://www.officialcharts.com",
+		listSrcName: "officialcharts.com"
+	});
+
+	this.echo("writing html");
+
+
+	fs.write("movierentals.html", html, "wb");
 });
+
+casper.run();
