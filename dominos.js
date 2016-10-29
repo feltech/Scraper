@@ -1,5 +1,5 @@
 /*global angular,CasperError*/
-var POSTCODE = "CT27NY",
+var POSTCODE,
 	step = 0,
 	casper = require("casper").create({
 		verbose: true,
@@ -7,7 +7,7 @@ var POSTCODE = "CT27NY",
 		onError: function () {
 			casper.capture("/tmp/" + (step++) + ".ERROR.png");
 		},
-		waitTimeout: 5000,
+		waitTimeout: 60000,
 		viewportSize: {width: 1280, height: 1024}
 	}),
 	x = require('casper').selectXPath,
@@ -18,6 +18,10 @@ var POSTCODE = "CT27NY",
 	currCodePage = 0;
 
 CasperError = Error;
+
+POSTCODE = casper.cli.args[0] || casper.die("No postcode specified");
+
+casper.echo("Searching for working voucher codes in '" + POSTCODE + "'");
 
 function say(text) {
 	casper.then(function () {
@@ -103,32 +107,6 @@ say("clicking to search for store");
 
 casper.thenClick("#btn-delivery");
 
-//say("waiting for Deliver To Me button");
-//
-//casper.waitForSelector(x("//button[text()='Deliver To Me'][@ng-click]"));
-//
-//say("checking dominos is open");
-//
-//casper.then(function () {
-//	var isOpen;
-//	if (!this.exists(x("//button[text()='Deliver To Me'][@ng-click]"))) {
-//		isOpen = this.evaluate(function () {
-//			return !!angular.element("div.store-fulfilment").scope().store.isOpen;
-//		});
-//		if (isOpen) {
-//			this.die("Store is open but 'Deliver To Me' not found");
-//		} else {
-//			this.die("Your local Dominos is closed, so cannot try vouchers at this time");
-//		}
-//	} else {
-//		this.echo("--- store is open!")
-//	}
-//});
-//
-//capture("choose delivery");
-//
-//casper.thenClick(x("//button[text()='Deliver To Me'][@ng-click]"));
-
 say("waiting for the menu to show");
 
 casper.waitForSelector("button[title='Add Vegi Supreme to my order']");
@@ -185,6 +163,12 @@ casper.then(function () {
 	this.echo("\n\n=======Working vouchers (" + working.length + "/" + codes.length + ")========");
 	this.echo(working.join("\n"));
 	this.echo("\n");
+
+	if (working.length) {
+		casper.exit(0);
+	} else {
+		casper.exit(100);
+	}
 });
 
 casper.run();
