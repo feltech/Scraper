@@ -1,0 +1,68 @@
+# Go into this script's folder.
+cd "$(dirname `realpath $0`)"
+# In case things are stored in local, and we're running in cron.
+export PATH="$PATH:/usr/local/bin"
+# Store email address given in options (blank means just stdout).
+EMAIL=""
+# Store number of pages to scrape.
+PAGES=3
+# Store number of weeks to scrape.
+WEEKS=8
+
+# Parse the command line options.
+
+PARSED=`getopt --options m:,p:,w: --longoptions mail:,pages:,weeks: --name "$0" -- "$@"`
+if [[ $? -ne 0 ]]; then
+  exit 2
+fi
+# -- use eval with "$PARSED" to properly handle the quoting
+eval set -- "$PARSED"
+
+while true; do
+  case "$1" in
+    -m|--mail)
+      EMAIL="$2"
+      shift 2
+    ;;
+    -p|--pages)
+      PAGES="$2"
+      shift 2
+    ;;
+    -w|--weeks)
+      WEEKS="$2"
+      shift 2
+    ;;    
+    --)
+      shift
+      break
+    ;;
+    *)
+      echo "Programming error"
+      exit 3
+    ;;  
+  esac
+done
+
+# -- handle non-option arguments
+if [[ $# -ne 0 ]]; then
+  echo "$0: unknown additional parameter '$1'"
+  exit 4
+fi
+
+# Scrape rentals chart.
+casperjs --ignore-ssl-errors=true --ssl-protocol=any --output-encoding=utf8 rentals.js $WEEKS
+
+# Email if failure
+if [ $? -ne 0 -a "$EMAIL" != "" ]; then
+  echo "Emailing failure to $EMAIL";
+  echo "Failed at $(date)" | mail -s "CasperJS rentals script failed" $EMAIL;
+fi
+
+# Scrape tv shows chart.
+casperjs --ignore-ssl-errors=true --ssl-protocol=any --output-encoding=utf8 tvshows.js $PAGES
+
+# Email if failure
+if [ $? -ne 0 -a "$EMAIL" != "" ]; then
+  echo "Emailing failure to $EMAIL";
+  echo "Failed at $(date)" | mail -s "CasperJS tvshows script failed" $EMAIL;
+fi
