@@ -2,16 +2,26 @@
 cd "$(dirname `realpath $0`)"
 # In case things are stored in local, and we're running in cron.
 export PATH="$PATH:/usr/local/bin"
-# Store email address given in options (blank means just stdout).
-EMAIL=""
-# Store number of pages to scrape.
-PAGES=3
-# Store number of weeks to scrape.
+# Number of weeks of movie charts to scrape.
 WEEKS=8
+# Minimum rating of movies.
+RATING=6
+# Number of eztv pages to scrape.
+EZTV=2
+# Email address to send failures to.
+EMAIL=""
+# Neocities username.
+USER=""
+# Neocities password.
+PASS=""
+# Whether to scrape movie rentals
+MOVIERENTALS=0
+# Whether to scrape tv shows
+TVSHOWS=0
 
 # Parse the command line options.
 
-PARSED=`getopt --options m:,p:,w: --longoptions mail:,pages:,weeks: --name "$0" -- "$@"`
+PARSED=`getopt --options w:,r:,e:,m:,u:,p: --longoptions weeks:,rating:,eztv:,mail:,user:,pass: --name "$0" -- "$@"`
 if [[ $? -ne 0 ]]; then
   exit 2
 fi
@@ -20,18 +30,30 @@ eval set -- "$PARSED"
 
 while true; do
   case "$1" in
+    -w|--weeks)
+      WEEKS="$2"
+      shift 2
+    ;;  
+    -r|--rating)
+      RATING="$2"
+      shift 2
+    ;;  
+    -e|--eztv)
+      EZTV="$2"
+      shift 2
+    ;;
     -m|--mail)
       EMAIL="$2"
       shift 2
     ;;
-    -p|--pages)
-      PAGES="$2"
+    -u|--user)
+      USER="$2"
       shift 2
     ;;
-    -w|--weeks)
-      WEEKS="$2"
+    -p|--pass)
+      PASS="$2"
       shift 2
-    ;;    
+    ;;      
     --)
       shift
       break
@@ -43,26 +65,60 @@ while true; do
   esac
 done
 
-# -- handle non-option arguments
-if [[ $# -ne 0 ]]; then
-  echo "$0: unknown additional parameter '$1'"
+if [ "$WEEKS" = "" -a "$RATING" != "" ]; then
+  echo "Must specify number of weeks if rating is specified (-w/--weeks)."
   exit 4
 fi
 
-# Scrape rentals chart.
-casperjs --ignore-ssl-errors=true --ssl-protocol=any --output-encoding=utf8 rentals.js $WEEKS
+# -- handle non-option arguments
+case "$1" in
+    movies)
+      MOVIERENTALS=1
+      shift 2
+    ;;  
+    tv)
+      TVSHOWS=1
+      shift 2
+    ;;  
+    all)
+      MOVIERENTALS=1
+      TVSHOWS=1
+      shift 2
+    ;;     
+    *)
+      echo "$0: unsupported scrape source '$1'. Must be 'movies', 'tv' or 'all'."  
+      exit 4
+    ;; 
+esac
 
-# Email if failure
-if [ $? -ne 0 -a "$EMAIL" != "" ]; then
-  echo "Emailing failure to $EMAIL";
-  echo "Failed at $(date)" | mail -s "CasperJS rentals script failed" $EMAIL;
+if [ $MOVIERENTALS -eq 1 ]; then
+
+  # Scrape rentals chart.
+  casperjs --ignore-ssl-errors=true --ssl-protocol=any --output-encoding=utf8 rentals.js $WEEKS $RATING
+
+  # Email if failure
+  if [ $? -ne 0 -a "$EMAIL" != "" ]; then
+    echo "Emailing failure to $EMAIL";
+    echo "Failed at $(date)" | mail -s "CasperJS rentals script failed" $EMAIL;
+
+  elif [ "$USER" != "" ]; then
+    echo "Uploading movierentals to Neocities";
+    curl -F "movierentals.html=@movierentals.html" "https://$USER:$PASS@neocities.org/api/upload"  
+  fi
 fi
 
-# Scrape tv shows chart.
-casperjs --ignore-ssl-errors=true --ssl-protocol=any --output-encoding=utf8 tvshows.js $PAGES
+if [ $TVSHOWS -eq 1 ]; then
 
-# Email if failure
-if [ $? -ne 0 -a "$EMAIL" != "" ]; then
-  echo "Emailing failure to $EMAIL";
-  echo "Failed at $(date)" | mail -s "CasperJS tvshows script failed" $EMAIL;
+  # Scrape tv shows chart.
+  casperjs --ignore-ssl-errors=true --ssl-protocol=any --output-encoding=utf8 tvshows.js $EZTV
+
+  # Email if failure
+  if [ $? -ne 0 -a "$EMAIL" != "" ]; then
+    echo "Emailing failure to $EMAIL";
+    echo "Failed at $(date)" | mail -s "CasperJS tvshows script failed" $EMAIL;
+
+  elif [ $USER != "" ]; then
+    echo "Uploading tvshows to Neocities";
+    curl -F "tvshows.html=@tvshows.html" "https://$USER:$PASS@neocities.org/api/upload"  
+  fi
 fi
