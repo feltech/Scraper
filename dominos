@@ -1,3 +1,4 @@
+#!/bin/bash
 # Go into this script's folder.
 cd "$(dirname `realpath $0`)"
 # In case things are stored in local, and we're running in cron.
