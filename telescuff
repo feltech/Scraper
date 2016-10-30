@@ -1,3 +1,4 @@
+#!/bin/bash
 # Go into this script's folder.
 cd "$(dirname `realpath $0`)"
 # In case things are stored in local, and we're running in cron.
@@ -117,7 +118,7 @@ if [ $TVSHOWS -eq 1 ]; then
     echo "Emailing failure to $EMAIL";
     echo "Failed at $(date)" | mail -s "CasperJS tvshows script failed" $EMAIL;
 
-  elif [ $USER != "" ]; then
+  elif [ "$USER" != "" ]; then
     echo "Uploading tvshows to Neocities";
     curl -F "tvshows.html=@tvshows.html" "https://$USER:$PASS@neocities.org/api/upload"  
   fi
