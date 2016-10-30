@@ -4,8 +4,7 @@
   "description": "casperjs scripts to scrape across sites and join useful info",
   "dependencies": {
     "episode-parser": "^1.2.0",
-    "lodash": "^4.5.0",
-    "q": "^1.4.1"
+    "lodash": "^4.5.0"
   },
   "peerDependencies": {
     "casperjs": "^1.1.3"
