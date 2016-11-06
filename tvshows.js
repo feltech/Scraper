@@ -126,12 +126,20 @@ TVShow.prototype.imdbInfo = reportErrors(function () {
 				name: text("h1[itemprop='name']"),
 				year: $("div.subtext > a").last().html()
 					.replace(/[A-Z\(\)\s]/gi, "").replace(/\D/g, "-"),
-				description: text("[itemprop='description'] > p"),
+				description: $("[itemprop='description'] > p").first().contents().not(
+						$("[itemprop='description'] > p > em.nobr").last()
+					).text().trim(),
 				genre: $("div.titleBar [itemprop='genre']").map(function () {
 					return $(this).text().trim();
 				}).get().join(", ")
 			};
 		});
+		
+		["name", "description"].forEach(function (attr) {
+			if (imdbInfo[attr])
+				imdbInfo[attr] = _.escape(imdbInfo[attr]);
+		});
+		
 //		this.echo(JSON.stringify(imdbInfo));
 		_.extend(show, imdbInfo);
 	}));
@@ -140,10 +148,10 @@ TVShow.prototype.imdbInfo = reportErrors(function () {
 
 TVShow.prototype.html = reportErrors(function () {
 	return "<tr><th>" + this.name + " (" + this.year + ")" + "</th><th>" +
-		(this.rating && this.rating.toFixed(2) || "???") + "</th><th>" + this.genre +
+		(this.rating && this.rating.toFixed(1) || "???") + "</th><th>" + this.genre +
 		"</th><th>" + this.duration + "</th>" +
 		"</tr><tr><td colspan=4>" + this.description + "<br/>" +
-		"<a href='" + this.imdbURL + "'>" + this.imdbURL + "</a><ul>";
+		"<a href='" + this.imdbURL + "'>" + this.imdbURL + "</a></td></tr>\n";
 });
 
 
@@ -238,7 +246,8 @@ scrapeShows = reportErrors(function (casper) {
 
 		this.echo("constructing html for remaining " + shows.length + " shows");
 
-		html += "<thead><th>Title</th><th>Rating</th><th>Genre</th><th>Duration</th</thead><tbody>";
+		html += "<thead><tr><th>Title</th><th>Rating</th><th>Genre</th><th>Duration</th></tr>" +
+				"</thead><tbody>\n";
 
 		this.echo("getting table rows");
 

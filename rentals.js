@@ -156,7 +156,8 @@ casper.then(function () {
 
 	casper.echo("constructing html for remaining " + titles.length + " shows");
 
-	html = "<thead><th>Title</th><th>Rating</th><th>Weeks</th><th>Genre</th</thead><tbody>";
+	html = "<thead><tr>" +
+		"<th>Title</th><th>Rating</th><th>Weeks</th><th>Genre</th></tr></thead><tbody>";
 
 	titles.forEach(function (title) {
 		html += "<tr><th>" + title.name + " (" + title.year + ")" + "</th><th>" +
