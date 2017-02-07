@@ -74,9 +74,7 @@ for (currCodePage = 0; currCodePage < numCodePages; currCodePage++)
 
 	casper.then(getCodes);
 
-	casper.then(function () {
-		this.echo("--- going to next page");
-	});
+	say("--- going to next page");
 
 	casper.thenClick("a.paginationButton--arrow-next");
 
@@ -127,7 +125,7 @@ capture("enter vouchers");
 
 say("entering codes...");
 
-casper.then(function () {
+casper.then(function () { 
 
 	codes.forEach(function (code) {
 
@@ -144,6 +142,21 @@ casper.then(function () {
 		this.then(function () {
 			code.status = this.fetchText("div.voucher-code-input > p.help-block").trim();
 		});
+		
+		this.then(function () {
+			// Clear the voucher, if it was successfully added, so subsequent vouchers can be 
+			// checked.
+			if (this.exists("[data-voucher] .basket-product-actions button")) {
+				say("voucher worked! clearing voucher");
+				this.thenClick("[data-voucher] .basket-product-actions button");
+				say("cleared voucher, awaiting confirmation dialog");
+				this.waitForSelector('div.modal.in button[resource-name="OkButton"]');
+				say("confirming");
+				this.thenClick('div.modal.in button[resource-name="OkButton"]');
+				say("waiting for voucher to clear");
+				this.waitWhileSelector("[data-voucher] .basket-product-actions button");
+			}
+		});
 	}.bind(this));
 });
 
@@ -151,7 +164,7 @@ capture("finish");
 
 casper.then(function () {
 	var working = codes.filter(function (code) {
-		return !/invalid|expired|Voucher Used/i.test(code.status);
+		return !/invalid|expired|Voucher Used|already been used/i.test(code.status);
 	}).map(function (code) {
 		return code.description + " [" + code.code + "]";
 	});
