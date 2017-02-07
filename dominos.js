@@ -52,16 +52,18 @@ function getCodes() {
 	}
 
 	casper.echo("Got codes: " + pageCodes);
-
-	pageCodeData = _(pageCodes)
-					.map(function (code) { return code.trim(); })
-					.zip(pageDescs)
-					.map(_.partial(_.zipObject, ["code", "description"]))
-					.filter(_.partial(_.get, _, "code", null))
-					.value();
-
-	[].push.apply(codes, pageCodeData);
-
+	
+	_(pageCodes).zip(pageDescs).each(function (codeAndDesc) {
+		var multiCodes = codeAndDesc[0].trim().split(" ");
+		_(multiCodes).each(function (code) {
+			if (code) {
+				codes.push({
+					code: code,
+					description: codeAndDesc[1]
+				});
+			}
+		});
+	});
 }
 
 casper.start("http://www.hotukdeals.com/vouchers/dominos.co.uk");
