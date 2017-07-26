@@ -20,7 +20,7 @@ var step = 0,
 	titles;
 
 
-casper.echo("Starting");
+casper.echo("Starting at " + new Date());
 casper.start("about:blank");
 
 
@@ -148,13 +148,23 @@ casper.then(function () {
 casper.then(function () {
 	var html;
 
-	casper.echo("filtering out titles less than min rating");
+	this.echo("filtering out titles less than min rating");
+
+	if (titles.length === 0) {
+		this.die("Zero titles found");
+		return;
+	};
 
 	titles = titles.filter(function (title) {
 		return title.rating >= minRating;
 	});
+	
+	if (titles.length === 0) {
+		this.die("Zero titles left after filtering by rating");
+		return;
+	};
 
-	casper.echo("constructing html for remaining " + titles.length + " shows");
+	this.echo("constructing html for remaining " + titles.length + " shows");
 
 	html = "<thead><tr>" +
 		"<th>Title</th><th>Rating</th><th>Weeks</th><th>Genre</th></tr></thead><tbody>";
@@ -164,7 +174,7 @@ casper.then(function () {
 			(title.rating && title.rating.toFixed(1) || "???") +
 			"</th><th>" + title.weeks + "</th><th>" + title.genre +  "</th></tr>" +
 			"<tr><td colspan=4>" + title.description + "<br/>" +
-			"<a href='" + title.url + "'>" + title.url + "</a></td></tr>";
+			"<a href='" + title.url + "'>" + title.url + "</a></td></tr>\n";
 	});
 
 	html += "</tbody>";
@@ -180,7 +190,7 @@ casper.then(function () {
 	this.echo("generating html");
 
 	html = tmpl({
-		page: "movierentals", headerTitle: "Top Movie Rentals",
+		page: "movierentals", icon: "film", headerTitle: "Movie Rentals",
 		headerSubtitle: "overview of movie rentals rated greater than " + minRating.toFixed(1) +
 		" from the last " + numWeeks + " weeks",
 		tableContent: html, listSrcURL: "http://www.officialcharts.com",

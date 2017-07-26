@@ -8,7 +8,7 @@ WEEKS=8
 # Minimum rating of movies.
 RATING=6
 # Number of eztv pages to scrape.
-EZTV=2
+EZTV=4
 # Email address to send failures to.
 EMAIL=""
 # Neocities username.
@@ -100,7 +100,7 @@ if [ $MOVIERENTALS -eq 1 ]; then
   # Email if failure
   if [ $? -ne 0 -a "$EMAIL" != "" ]; then
     echo "Emailing failure to $EMAIL";
-    echo "Failed at $(date)" | mail -s "CasperJS rentals script failed" $EMAIL;
+    echo "Failed at $(date)" | mail -a "Message-ID:<scripts>" -s "CasperJS rentals script failed" $EMAIL;
 
   elif [ "$USER" != "" ]; then
     echo "Uploading movierentals to Neocities";
@@ -116,7 +116,7 @@ if [ $TVSHOWS -eq 1 ]; then
   # Email if failure
   if [ $? -ne 0 -a "$EMAIL" != "" ]; then
     echo "Emailing failure to $EMAIL";
-    echo "Failed at $(date)" | mail -s "CasperJS tvshows script failed" $EMAIL;
+    echo "Failed at $(date)" | mail -a "Message-ID:<scripts>" -s "CasperJS tvshows script failed" $EMAIL;
 
   elif [ "$USER" != "" ]; then
     echo "Uploading tvshows to Neocities";

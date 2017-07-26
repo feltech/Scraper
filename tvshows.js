@@ -19,8 +19,7 @@ var Casper = require("casper"),
 	noop = function () {};
 
 
-console.log("Begin");
-
+casper.echo("Starting at " + new Date());
 
 function reportErrors(fn) {
 	return function () {
@@ -267,7 +266,7 @@ scrapeShows = reportErrors(function (casper) {
 		this.echo("generating html");
 
 		html = tmpl({
-			page: "tvshows", headerTitle: "Top TV Shows",
+			page: "tvshows", icon: "blackboard", headerTitle: "TV Shows",
 			headerSubtitle: "overview of popular shows airing in the last couple of days",
 			tableContent: html, listSrcURL: "https://eztv.ag", listSrcName: "EZTV"
 		});

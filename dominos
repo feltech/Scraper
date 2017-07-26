@@ -38,6 +38,11 @@ while true; do
   esac
 done
 
+if [[ $POSTCODE == "" ]]; then
+  echo "Postcode is required (-p/--postcode)"
+  exit 2
+fi
+
 # -- handle non-option arguments
 if [[ $# -ne 0 ]]; then
   echo "$0: unknown additional parameter '$1'"
@@ -57,7 +62,7 @@ if [ "$EMAIL" != "" ]; then
     *) subject="Script Error" ;;
   esac
 
-  echo "$output" | mail -s "Dominos Vouchers - $subject" $EMAIL;
+  echo "$output" | mail -a "Message-ID:<scripts@dave.desktop>"  -s "Dominos Vouchers - $subject" $EMAIL;
 
 else
   $CMD

@@ -107,13 +107,21 @@ say("clicking to search for store");
 
 casper.thenClick("#btn-delivery");
 
+say("waiting for the menu button");
+
+casper.waitForSelector("#menu-selector");
+
+say("clicking to show menu");
+
+casper.thenClick("#menu-selector");
+
 say("waiting for the menu to show");
 
-casper.waitForSelector("button[title='Add Vegi Supreme to my order']");
+casper.waitForSelector("button[resource-name='AddToBasket']");
 
 capture("pick a pizza");
 
-casper.thenClick("button[title='Add Vegi Supreme to my order']");
+casper.thenClick("button[resource-name='AddToBasket']");
 
 say("going to basket");
 
