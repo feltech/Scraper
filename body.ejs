@@ -39,7 +39,7 @@
 	
 	<script>
 		$(document).ready(function () {
-			localforage.getItem("links").then(function decorate (prevLinks) {
+			localforage.getItem("<%= page %>links").then(function decorate (prevLinks) {
 				
 				if (prevLinks === null) {
 					prevLinks = [];
@@ -58,7 +58,7 @@
 					}
 				});	
 				
-				localforage.setItem("links", currLinks);
+				localforage.setItem("<%= page %>links", currLinks);
 			});
 		});
 	</script>	
