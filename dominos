@@ -50,7 +50,7 @@ if [[ $# -ne 0 ]]; then
 fi
 
 # The magic script.
-CMD="casperjs --ignore-ssl-errors=true --ssl-protocol=any dominos.js $POSTCODE"
+CMD="casperjs --verbose --ignore-ssl-errors=true --ssl-protocol=any dominos.js $POSTCODE"
 
 # Execute the command, emailing output if address given.
 if [ "$EMAIL" != "" ]; then
@@ -62,7 +62,7 @@ if [ "$EMAIL" != "" ]; then
     *) subject="Script Error" ;;
   esac
 
-  echo "$output" | mail -a "Message-ID:<scripts@dave.desktop>"  -s "Dominos Vouchers - $subject" $EMAIL;
+  echo "$output" | mail -a "Message-ID:<scripts@telescuff>"  -s "Dominos Vouchers - $subject" $EMAIL;
 
 else
   $CMD

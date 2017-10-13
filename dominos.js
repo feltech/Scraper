@@ -36,52 +36,139 @@ function capture(name) {
 	});
 }
 
+function reportErrors(fn) {
+	return function () {
+		try {
+			return fn.apply(this, arguments);
+		} catch (e) {
+			console.log(e);
+			throw e;
+		}
+	}
+}
 
 
-function getCodes() {
-	var pageCodes = this.getElementsAttribute("input.voucherReveal-peel-bottom-code", "value"),
-		pageDescs = this.getElementsInfo("p.thread-title-text").map(function (info) {
-			return info.text;
-		}),
-		pageCodeData;
-	if (pageCodes.length !== pageDescs.length) {
-		this.die(
-			"Error: pageCodes.length !== pageDescs.length: " +
-			pageCodes.length + " !== " + pageDescs.length
-		);
+(reportErrors(function take10s() {
+	var generated = [],
+		alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split(""),
+		i,j;
+
+	for (i = 0; i < alphabet.length; i++) {
+		for (j = 0; j < alphabet.length; j++) {
+			generated.push({
+				code: "TAKE10" + alphabet[i] + alphabet[j], description: "Generated TAKE10 code"
+			});
+		}
 	}
 
-	casper.echo("Got codes: " + pageCodes);
-	
-	_(pageCodes).zip(pageDescs).each(function (codeAndDesc) {
-		var multiCodes = codeAndDesc[0].trim().split(" ");
-		_(multiCodes).each(function (code) {
-			if (code) {
-				codes.push({
-					code: code,
-					description: codeAndDesc[1]
-				});
-			}
+	[].push.apply(codes, generated);
+
+})());
+
+function getCodes() {
+	var sections = _.compact(this.evaluate(function () {
+			return $("article.thread--voucher").toArray().map(function (el) {
+				return $(el).find("[data-voucher-button]").data() && $(el).attr("id") || null;
+			});
+		})),
+		pageCodes = this.evaluate(function (sections) {
+			return sections.map(function (id) {
+				return {
+					id: $("#"+id).find("[data-voucher-button]").data().voucherButton.id,
+
+					desc: $("#"+id).find("strong.thread-title").text().trim()
+					.replace(/\s{2,}/g, " ").replace("INSTRUCTIONS: ", "")
+					.replace(" Read more", "")
+				};
+			});
+		}, sections),
+		pageCodeData;
+
+	_(pageCodes).each(function (pageCode) {
+
+		say("getting voucher for id " + pageCode.id);
+
+		casper.then(function () {
+			this.evaluate(function (id) {
+				$.cookie("show_voucher", id);
+			}, pageCode.id);
 		});
+
+		say("reloading to show popup");
+
+		casper.then(function () {
+			this.reload();
+		});
+
+		say("waiting for popup with code for id " + pageCode.id);
+
+		casper.waitForSelector("div.popover-content span.voucher-code");
+
+		say("scriaping popup with code for id " + pageCode.id);
+
+		casper.then(reportErrors(function () {
+			var code = casper.getElementInfo("div.popover-content span.voucher-code").text;
+			var multiCodes = code.trim().replace(/"/g, "").split(" ");
+			_(multiCodes).each(function (code) {
+				if (code) {
+					codes.push({
+						code: code,
+						description: pageCode.desc
+					});
+				}
+			});
+
+			this.echo(
+				"popup with code for id " + pageCode.id + " is '" + code + "' with description '" +
+				pageCode.desc + "'"
+			);
+		}));
+	});
+
+	say("removing cookie");
+
+	casper.then(function () {
+		this.evaluate(function () {
+			$.removeCookie("show_voucher");
+		});
+	});
+
+	say("reloading to hide popup");
+
+	casper.then(function () {
+		this.reload();
 	});
 }
 
-casper.start("http://www.hotukdeals.com/vouchers/dominos.co.uk");
+var pageNumSelector = "#pagination > nav > div > span.tGrid-cell.tGrid-cell--shrink" +
+".vAlign--all-m.space--h-4.space--v-1.text--color-brandPrimary > button > span.hide--toW2";
 
-say("on voucher page");
+casper.start("https://www.hotukdeals.com/vouchers/dominos.co.uk");
 
-for (currCodePage = 0; currCodePage < numCodePages; currCodePage++)
+say("waiting for load");
+
+casper.waitForSelector("[data-voucher-button]");
+
+casper.then(reportErrors(getCodes));
+
+for (currCodePage = 1; currCodePage < numCodePages; currCodePage++)
 {
 	capture("Voucher code page " + (currCodePage + 1) + " of " + numCodePages);
 
-	casper.then(getCodes);
+	casper.then(function () {
+		say("going to next page");
 
-	say("--- going to next page");
-
-	casper.thenClick("a.paginationButton--arrow-next");
-
-	casper.waitForSelectorTextChange("span.paginationButton--current");
+		if (casper.visible(pageNumSelector)) {
+			casper.thenClick("a[rel='next']");
+			casper.waitForSelectorTextChange(pageNumSelector);
+			casper.then(reportErrors(getCodes));
+		} else {
+			casper.say("no more pages of codes, breaking early.");
+			return;
+		}
+	});
 }
+
 
 casper.thenOpen("https://www.dominos.co.uk");
 
@@ -91,11 +178,11 @@ casper.waitForSelector("#store-finder-search");
 
 say("searching for store");
 
-casper.then(function () {
+casper.then(reportErrors(function () {
 	this.fillSelectors("#store-finder-search", {
 		"input[type='text']": POSTCODE
 	});
-});
+}));
 
 capture("find store");
 
@@ -135,9 +222,9 @@ capture("enter vouchers");
 
 say("entering codes...");
 
-casper.then(function () { 
+casper.then(reportErrors(function () {
 
-	codes.forEach(function (code) {
+	codes.forEach(reportErrors(function (code) {
 
 		say("entering code: " + code.code);
 
@@ -152,9 +239,9 @@ casper.then(function () {
 		this.then(function () {
 			code.status = this.fetchText("div.voucher-code-input > p.help-block").trim();
 		});
-		
+
 		this.then(function () {
-			// Clear the voucher, if it was successfully added, so subsequent vouchers can be 
+			// Clear the voucher, if it was successfully added, so subsequent vouchers can be
 			// checked.
 			if (this.exists("[data-voucher] .basket-product-actions button")) {
 				say("voucher worked! clearing voucher");
@@ -167,12 +254,12 @@ casper.then(function () {
 				this.waitWhileSelector("[data-voucher] .basket-product-actions button");
 			}
 		});
-	}.bind(this));
-});
+	}).bind(this));
+}));
 
 capture("finish");
 
-casper.then(function () {
+casper.then(reportErrors(function () {
 	var working = codes.filter(function (code) {
 		return !/invalid|expired|Voucher Used|already been used/i.test(code.status);
 	}).map(function (code) {
@@ -180,7 +267,7 @@ casper.then(function () {
 	});
 
 	this.echo(codes.map(function (code) {
-		return code.description + " [" + code.code + "] = \"" + code.status + "\"";
+		return "[" + code.code + "] " + code.description + " = \"" + code.status + "\"";
 	}).join("\n"));
 
 	this.echo("\n\n=======Working vouchers (" + working.length + "/" + codes.length + ")========");
@@ -192,6 +279,6 @@ casper.then(function () {
 	} else {
 		casper.exit(100);
 	}
-});
+}));
 
 casper.run();
