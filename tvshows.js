@@ -12,7 +12,7 @@ var Casper = require("casper"),
 		}
 	},
 	casper = Casper.create(options),
-	numPages = parseInt(casper.cli.args[0] || "3", 10),
+	numPages = parseInt(casper.cli.args[0] || "5", 10),
 	logger,
 	shows,
 	scrapeShows,

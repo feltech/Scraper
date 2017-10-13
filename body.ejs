@@ -3,21 +3,21 @@
 <head>
 	<meta charset="UTF-8" />
    	<meta http-equiv="X-UA-Compatible" content="IE=edge" />
-   	<meta name="viewport" content="width=device-width, initial-scale=1" />		
+   	<meta name="viewport" content="width=device-width, initial-scale=1" />
 	<link rel="icon" href="/favicon.ico" />
-	<title>Telescuff - <%= headerTitle %></title> 
-	<link 
-		rel='stylesheet' 
-		href='https://maxcdn.bootstrapcdn.com/bootswatch/3.3.7/paper/bootstrap.min.css' /> 
+	<title>Telescuff - <%= headerTitle %></title>
+	<link
+		rel='stylesheet'
+		href='https://maxcdn.bootstrapcdn.com/bootswatch/3.3.7/united/bootstrap.min.css' />
 	<script src='https://code.jquery.com/jquery-3.1.1.slim.min.js'></script>
 	<script src='https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js'></script>
-	<script 
+	<script
 		src='https://cdnjs.cloudflare.com/ajax/libs/localforage/1.5.0/localforage.min.js'
 	></script>
 	<style>
 		body {
 			font-size: 15px;
-			background-color: #f3f3f3;
+/*			background-color: #f3f3f3;*/
 		}
 		h1 > div > span {
 			vertical-align: middle;
@@ -26,61 +26,61 @@
 			margin: 5px;
 			width: auto;
 			box-shadow: 0 1px 2px rgba(0,0,0,0.3);
-			border-radius: 3px;	
-			background-color: #fff;
-		}	
+			border-radius: 3px;
+/*			background-color: #fff;*/
+		}
 		span.label {
 			padding: .2em .6em;
 			margin-left: 1em;
 			vertical-align: middle;
 			border-radius: 1em;
-		}	
+		}
 	</style>
-	
+
 	<script>
 		$(document).ready(function () {
 			localforage.getItem("<%= page %>links").then(function decorate (prevLinks) {
-				
+
 				if (prevLinks === null) {
 					prevLinks = [];
 				}
-				
+
 				var currLinks = [];
 				$("td > a").each(function () {
-					var $el = $(this), 
+					var $el = $(this),
 						link = $el.text().trim();
 					currLinks.push(link);
-					
-					if (prevLinks.indexOf(link) == -1) {
-						$el.parent().parent().prev().find('th').first().append(
+
+					if (prevLinks.indexOf(link) === -1) {
+						$el.closest("tr").prev().find('th').first().append(
 							$('<span class="label label-primary">NEW</span>')
 						);
 					}
-				});	
-				
+				});
+
 				localforage.setItem("<%= page %>links", currLinks);
 			});
 		});
-	</script>	
+	</script>
 </head>
-<body>  
+<body>
 	<nav class='navbar navbar-default'>
 		<div class='container-fluid'>
 			<div class='navbar-header'>
-				<button 
+				<button
 					type="button" class="navbar-toggle collapsed"
 					data-toggle="collapse" data-target="#navbar-links"
 					aria-expanded="false"
 				>
-					<span class="icon-bar"></span> 
-					<span class="icon-bar"></span> 
+					<span class="icon-bar"></span>
+					<span class="icon-bar"></span>
 					<span class="icon-bar"></span>
 				</button>
-				<a class='navbar-brand' href='index.html'>Telescuff 
+				<a class='navbar-brand' href='index.html'>Telescuff
 				<small class="hidden-xs hidden-sm">
 					- TV & movie data scraped from the web</small></a>
 			</div>
-	
+
 			<div class='collapse navbar-collapse' id='navbar-links'>
 				<ul class='nav navbar-nav'>
 					<li <% if (page === "tvshows") { %>class='active'<% } %>><a
@@ -88,8 +88,8 @@
 					<li <% if (page === "movierentals") { %>class='active'<% } %>><a
 						href='movierentals.html'>Movie Rentals</a></li>
 				</ul>
-	
-					<p class='navbar-text navbar-right'>Updated 
+
+					<p class='navbar-text navbar-right'>Updated
 					<%= (new Date()).toUTCString() %>
 				</p>
 			</div>
@@ -99,14 +99,14 @@
 		<div class="container">
 			<h1 class="text-center">
 				<div>
-					<span class='glyphicon glyphicon-<%= icon %>'></span> 
+					<span class='glyphicon glyphicon-<%= icon %>'></span>
 					<span><%= headerTitle %></span>
 				</div>
 				<small><%= headerSubtitle %></small>
 			</h1>
 		</div>
-	</div> 
-	<table class='table table-striped'>
+	</div>
+	<table class='table'>
 		<%= tableContent %>
 	</table>
 		
