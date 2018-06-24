@@ -8,7 +8,7 @@ WEEKS=8
 # Minimum rating of movies.
 RATING=6
 # Number of eztv pages to scrape.
-EZTV=5
+EZTV=10
 # Email address to send failures to.
 EMAIL=""
 # Neocities username.
