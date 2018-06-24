@@ -47,7 +47,6 @@ function reportErrors(fn) {
 	}
 }
 
-
 (reportErrors(function take10s() {
 	var generated = [],
 		alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split(""),
@@ -86,7 +85,7 @@ function getCodes() {
 
 	_(pageCodes).each(function (pageCode) {
 
-		say("getting voucher for id " + pageCode.id);
+//		say("getting voucher for id " + pageCode.id);
 
 		casper.then(function () {
 			this.evaluate(function (id) {
@@ -94,17 +93,17 @@ function getCodes() {
 			}, pageCode.id);
 		});
 
-		say("reloading to show popup");
+//		say("reloading to show popup");
 
 		casper.then(function () {
 			this.reload();
 		});
 
-		say("waiting for popup with code for id " + pageCode.id);
+//		say("waiting for popup with code for id " + pageCode.id);
 
 		casper.waitForSelector("div.popover-content span.voucher-code");
 
-		say("scriaping popup with code for id " + pageCode.id);
+//		say("scraping popup with code for id " + pageCode.id);
 
 		casper.then(reportErrors(function () {
 			var code = casper.getElementInfo("div.popover-content span.voucher-code").text;
@@ -118,10 +117,10 @@ function getCodes() {
 				}
 			});
 
-			this.echo(
-				"popup with code for id " + pageCode.id + " is '" + code + "' with description '" +
-				pageCode.desc + "'"
-			);
+//			this.echo(
+//				"popup with code for id " + pageCode.id + " is '" + code + "' with description '" +
+//				pageCode.desc + "'"
+//			);
 		}));
 	});
 
@@ -226,7 +225,7 @@ casper.then(reportErrors(function () {
 
 	codes.forEach(reportErrors(function (code) {
 
-		say("entering code: " + code.code);
+//		say("entering code: " + code.code);
 
 		this.then(function () {
 			this.fillSelectors("div.voucher-code-input > form", { "input[type='text']": code.code });
@@ -260,14 +259,22 @@ casper.then(reportErrors(function () {
 capture("finish");
 
 casper.then(reportErrors(function () {
+
+	say("analysing codes...");
+
 	var working = codes.filter(function (code) {
 		return !/invalid|expired|Voucher Used|already been used/i.test(code.status);
 	}).map(function (code) {
 		return code.description + " [" + code.code + "]";
+	}),
+	grouped = _.groupBy(codes, function (code) {
+		return code.status;
 	});
 
-	this.echo(codes.map(function (code) {
-		return "[" + code.code + "] " + code.description + " = \"" + code.status + "\"";
+	this.echo(_.map(grouped, function (group, status) {
+		return group.map(function (code) {
+			return "[" + code.code + "]";
+		}).join("") + ": " + status;
 	}).join("\n"));
 
 	this.echo("\n\n=======Working vouchers (" + working.length + "/" + codes.length + ")========");
