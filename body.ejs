@@ -46,13 +46,13 @@
 				}
 
 				var currLinks = [];
-				$("td > a").each(function () {
+				$("[data-imdb]").each(function () {
 					var $el = $(this),
-						link = $el.text().trim();
+						link = ($el.data().episode || "") + $el.data().imdb;
 					currLinks.push(link);
 
 					if (prevLinks.indexOf(link) === -1) {
-						$el.closest("tr").prev().find('th').first().append(
+						$el.find('th').first().append(
 							$('<span class="label label-primary">NEW</span>')
 						);
 					}
@@ -89,7 +89,7 @@
 						href='movierentals.html'>Movie Rentals</a></li>
 				</ul>
 
-					<p class='navbar-text navbar-right'>Updated
+				<p class='navbar-text navbar-right'>Updated
 					<%= (new Date()).toUTCString() %>
 				</p>
 			</div>

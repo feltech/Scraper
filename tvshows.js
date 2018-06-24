@@ -46,9 +46,11 @@ Scraped.prototype.say = function (text) {
 }
 
 
-function TVShow(name, casper) {
+function TVShow(episode, casper) {
 	Scraped.call(this, casper);
-	this.name = name;
+	this.name = episode.show;
+	this.season = episode.season;
+	this.episode = episode.episode;
 	this.imdbURL = "";
 	this.year = "";
 	this.genre = "";
@@ -125,20 +127,24 @@ TVShow.prototype.imdbInfo = reportErrors(function () {
 				name: text("h1[itemprop='name']"),
 				year: $("div.subtext > a").last().html()
 					.replace(/[A-Z\(\)\s]/gi, "").replace(/\D/g, "-"),
-				description: $("[itemprop='description'] > p").first().contents().not(
-						$("[itemprop='description'] > p > em.nobr").last()
-					).text().trim(),
+				description: $("#titleStoryLine [itemprop='description']").text().trim(),
 				genre: $("div.titleBar [itemprop='genre']").map(function () {
 					return $(this).text().trim();
 				}).get().join(", ")
 			};
 		});
-		
+
 		["name", "description"].forEach(function (attr) {
 			if (imdbInfo[attr])
 				imdbInfo[attr] = _.escape(imdbInfo[attr]);
 		});
-		
+
+		_.each(imdbInfo, function (value, key) {
+			if (!value) {
+				this.echo(key + " has no value: '" + value + "'");
+			}
+		}.bind(this));
+
 //		this.echo(JSON.stringify(imdbInfo));
 		_.extend(show, imdbInfo);
 	}));
@@ -146,7 +152,10 @@ TVShow.prototype.imdbInfo = reportErrors(function () {
 
 
 TVShow.prototype.html = reportErrors(function () {
-	return "<tr><th>" + this.name + " (" + this.year + ")" + "</th><th>" +
+	return "<tr data-imdb='" + this.imdbURL +
+		"' data-episode='S" + _.padStart(this.season, 2, "0") +
+		"E" + _.padStart(this.episode, 2, "0") + "'><th>" +
+		this.name + " (" + this.year + ")" + "</th><th>" +
 		(this.rating && this.rating.toFixed(1) || "???") + "</th><th>" + this.genre +
 		"</th><th>" + this.duration + "</th>" +
 		"</tr><tr><td colspan=4>" + this.description + "<br/>" +
@@ -191,8 +200,6 @@ scrapeShows = reportErrors(function (casper) {
 				return parser(title);
 			}).filter(function (title) {
 				return title && title.show;
-			}).map(function (title) {
-				return title.show;
 			});
 
 			[].push.apply(titles, pageTitles);
@@ -205,7 +212,7 @@ scrapeShows = reportErrors(function (casper) {
 	casper.then(reportErrors(function () {
 		var casper = this;
 
-		titles = _.uniq(titles);
+		titles = _.uniqBy(titles, 'show');
 
 		shows = titles.map(function (title) {
 			return new TVShow(title, casper);

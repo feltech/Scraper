@@ -110,7 +110,7 @@ function imdb(title) {
 				rating: num("span[itemprop='ratingValue']"),
 				name: text("h1[itemprop='name']"),
 				year: num("span#titleYear > a"),
-				description: text("div[itemprop='description'] > p"),
+				description: $("#titleStoryLine [itemprop='description']").text().trim(),
 				genre: $("span[itemprop='genre']").map(function () {
 					return $(this).text().trim();
 				}).toArray().join(", ")
@@ -158,7 +158,7 @@ casper.then(function () {
 	titles = titles.filter(function (title) {
 		return title.rating >= minRating;
 	});
-	
+
 	if (titles.length === 0) {
 		this.die("Zero titles left after filtering by rating");
 		return;
@@ -170,7 +170,8 @@ casper.then(function () {
 		"<th>Title</th><th>Rating</th><th>Weeks</th><th>Genre</th></tr></thead><tbody>";
 
 	titles.forEach(function (title) {
-		html += "<tr><th>" + title.name + " (" + title.year + ")" + "</th><th>" +
+		html += "<tr data-imdb='" + title.url + "'><th>" + title.name +
+			" (" + title.year + ")" + "</th><th>" +
 			(title.rating && title.rating.toFixed(1) || "???") +
 			"</th><th>" + title.weeks + "</th><th>" + title.genre +  "</th></tr>" +
 			"<tr><td colspan=4>" + title.description + "<br/>" +
