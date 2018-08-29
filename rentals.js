@@ -91,7 +91,7 @@ function imdb(title) {
 
 	page.thenOpen(title.url);
 
-	page.waitForSelector("[itemprop='name']");
+	page.waitForSelector("div.title_wrapper > h1");
 
 	page.then(function () {
 		var imdbInfo;
@@ -107,13 +107,17 @@ function imdb(title) {
 			}
 
 			return {
-				rating: num("span[itemprop='ratingValue']"),
-				name: text("h1[itemprop='name']"),
-				year: num("span#titleYear > a"),
-				description: $("#titleStoryLine [itemprop='description']").text().trim(),
-				genre: $("span[itemprop='genre']").map(function () {
-					return $(this).text().trim();
-				}).toArray().join(", ")
+				rating: num("div.ratingValue > strong > span"),
+				name: text("div.title_wrapper > h1"),
+				year: /[0-9]{4}/.exec(
+                    $("#titleDetails > div > h4:contains('Release Date')").parent().text()
+                )[0],
+				description: $("#titleStoryLine > div > p > span").text().trim(),
+				genre: $("#titleStoryLine > div > h4:contains('Genres')").parent().find("a").map(
+                    function () {
+                        return $(this).text().trim();
+                    }
+                ).toArray().join(", ")
 			};
 		});
 

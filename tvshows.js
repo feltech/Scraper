@@ -8,7 +8,8 @@ var Casper = require("casper"),
 		logLevel: "warning",
 		waitTimeout: 60000,
 		onError: function () {
-			this.echo("ERROR " + arguments);
+			this.echo("ERROR " + JSON.stringify(arguments.toArray()));
+			this.capture("/tmp/tvshows.ERROR.png");
 		}
 	},
 	casper = Casper.create(options),
@@ -106,7 +107,7 @@ TVShow.prototype.imdbInfo = reportErrors(function () {
 
 	this.say("awaiting IMDB page load");
 
-	this.casper.waitForSelector("[itemprop='name']");
+	this.casper.waitForSelector("div.title_wrapper");
 
 	this.say("parsing IMDB info");
 
@@ -122,17 +123,23 @@ TVShow.prototype.imdbInfo = reportErrors(function () {
 			}
 
 			return {
-				rating: num("[itemprop='ratingValue']"),
-				duration: text("time[itemprop='duration']"),
-				name: text("h1[itemprop='name']"),
-				year: $("div.subtext > a").last().html()
-					.replace(/[A-Z\(\)\s]/gi, "").replace(/\D/g, "-"),
-				description: $("#titleStoryLine [itemprop='description']").text().trim(),
-				genre: $("div.titleBar [itemprop='genre']").map(function () {
-					return $(this).text().trim();
-				}).get().join(", ")
+				duration: $("#titleDetails > div > h4:contains('Runtime')").parent()
+                    .find("time").text().trim(),
+				rating: num("div.ratingValue > strong > span"),
+				name: text("div.title_wrapper > h1"),
+				year: /[0-9]{4}/.exec(
+                    $("#titleDetails > div > h4:contains('Release Date')").parent().text()
+                )[0],
+				description: $("#titleStoryLine > div > p > span").text().trim(),
+				genre: $("#titleStoryLine > div > h4:contains('Genres')").parent().find("a").map(
+                    function () {
+                        return $(this).text().trim();
+                    }
+                ).toArray().join(", ")
 			};
 		});
+
+        this.echo(_.truncate(JSON.stringify(imdbInfo), {length: 1000}));
 
 		["name", "description"].forEach(function (attr) {
 			if (imdbInfo[attr])
