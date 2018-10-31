@@ -74,7 +74,7 @@ TVShow.prototype.imdbLink = reportErrors(function () {
 
 	this.say("waiting for search page to show");
 
-	this.casper.waitForSelector("div.lister");
+	this.casper.waitForSelector("h1.header");
 
 	this.say("extracting IMDB link");
 
