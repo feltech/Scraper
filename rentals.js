@@ -54,7 +54,7 @@ function imdbLink (title) {
 	});
 
 	page.thenOpen(
-		"http://www.imdb.com/find?q=" + encodeURIComponent(title.name)
+		"http://www.imdb.com/find?s=tt&ttype=ft&q=" + encodeURIComponent(title.name)
 	);
 
 	page.then(function () {
@@ -65,11 +65,11 @@ function imdbLink (title) {
 
 	page.then(function () {
 		title.url = this.evaluate(function () {
-			if ($("td.result_text > a").length === 0) {
+			if ($("a[name='tt']").closest(".findSection").find("td.result_text > a").length === 0) {
 				return null;
 			}
 
-			return $("td.result_text > a").first().prop("href");
+			return $("a[name='tt']").closest(".findSection").find("td.result_text > a").first().prop("href");
 		});
 
 		if (!title.url) {
@@ -157,7 +157,7 @@ casper.then(function () {
 	if (titles.length === 0) {
 		this.die("Zero titles found");
 		return;
-	};
+	}
 
 	titles = titles.filter(function (title) {
 		return title.rating >= minRating;
@@ -166,20 +166,21 @@ casper.then(function () {
 	if (titles.length === 0) {
 		this.die("Zero titles left after filtering by rating");
 		return;
-	};
+	}
 
 	this.echo("constructing html for remaining " + titles.length + " shows");
 
 	html = "<thead><tr>" +
 		"<th>Title</th><th>Rating</th><th>Weeks</th><th>Genre</th></tr></thead><tbody>";
 
-	titles.forEach(function (title) {
-		html += "<tr data-imdb='" + title.url + "'><th>" + title.name +
-			" (" + title.year + ")" + "</th><th>" +
+	titles.forEach(function (title, idx) {
+		html += "<tbody data-seq='" + idx + "' data-rating='" + title.rating + "' data-imdb='" +
+			title.url + "'><tr><th>" +
+			title.name + " (" + title.year + ")" + "</th><th>" +
 			(title.rating && title.rating.toFixed(1) || "???") +
 			"</th><th>" + title.weeks + "</th><th>" + title.genre +  "</th></tr>" +
 			"<tr><td colspan=4>" + title.description + "<br/>" +
-			"<a href='" + title.url + "'>" + title.url + "</a></td></tr>\n";
+			"<a href='" + title.url + "'>" + title.url + "</a></td></tr></tbody>\n";
 	});
 
 	html += "</tbody>";

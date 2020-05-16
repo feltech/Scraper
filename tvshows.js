@@ -6,10 +6,14 @@ var Casper = require("casper"),
 	options = {
 		verbose: true,
 		logLevel: "warning",
-		waitTimeout: 60000,
+		waitTimeout: 30000,
 		onError: function () {
-			this.echo("ERROR " + JSON.stringify(arguments.toArray()));
+			this.echo("ERROR " + JSON.stringify(arguments));
 			this.capture("/tmp/tvshows.ERROR.png");
+		},
+		onWaitTimeout: function () {
+			this.echo("TIMEOUT " + JSON.stringify(arguments));
+			this.capture("/tmp/tvshows.TIMEOUT.png");
 		}
 	},
 	casper = Casper.create(options),
@@ -18,7 +22,6 @@ var Casper = require("casper"),
 	shows,
 	scrapeShows,
 	noop = function () {};
-
 
 casper.echo("Starting at " + new Date());
 
@@ -30,7 +33,7 @@ function reportErrors(fn) {
 			console.log(e);
 			throw e;
 		}
-	}
+	};
 }
 
 
@@ -49,7 +52,7 @@ Scraped.prototype.say = function (text) {
 
 function TVShow(episode, casper) {
 	Scraped.call(this, casper);
-	this.name = episode.show;
+	this.initialName = episode.show;
 	this.season = episode.season;
 	this.episode = episode.episode;
 	this.imdbURL = "";
@@ -66,10 +69,10 @@ TVShow.prototype.constructor = TVShow;
 TVShow.prototype.imdbLink = reportErrors(function () {
 	var show = this;
 
-	this.say("searching for IMDB link for '" + this.name + "'");
+	this.say("searching for IMDB link for '" + this.initialName + "'");
 
 	this.casper.thenOpen(
-		"http://www.imdb.com/search/title?title=" + this.name + "&title_type=tv_series"
+		"http://www.imdb.com/search/title?title=" + this.initialName + "&title_type=tv_series"
 	);
 
 	this.say("waiting for search page to show");
@@ -92,7 +95,7 @@ TVShow.prototype.imdbLink = reportErrors(function () {
 			casper.echo("IMDB link not found");
 		} else {
 			show.imdbURL = url.split("?")[0];
-			casper.echo("IMDB link for '" + show.name + "' is " + show.imdbURL);
+			casper.echo("IMDB link for '" + show.initialName + "' is " + show.imdbURL);
 		}
 	}));
 });
@@ -101,7 +104,7 @@ TVShow.prototype.imdbLink = reportErrors(function () {
 TVShow.prototype.imdbInfo = reportErrors(function () {
 	var show = this;
 
-	this.say("opening IMDB page for '" + this.name + "' from " + this.imdbURL);
+	this.say("opening IMDB page for '" + this.initialName + "' from " + this.imdbURL);
 
 	this.casper.thenOpen(this.imdbURL);
 
@@ -139,7 +142,11 @@ TVShow.prototype.imdbInfo = reportErrors(function () {
 			};
 		});
 
-        this.echo(_.truncate(JSON.stringify(imdbInfo), {length: 1000}));
+		if (!imdbInfo) {
+			this.echo(show.initialName + " has an unexpected imdb page: " + show.imdbURL);
+			return;
+		}
+		this.echo(_.truncate(JSON.stringify(imdbInfo), {length: 1000}));
 
 		["name", "description"].forEach(function (attr) {
 			if (imdbInfo[attr])
@@ -158,15 +165,15 @@ TVShow.prototype.imdbInfo = reportErrors(function () {
 });
 
 
-TVShow.prototype.html = reportErrors(function () {
-	return "<tr data-imdb='" + this.imdbURL +
+TVShow.prototype.html = reportErrors(function (seq) {
+	return "<tbody data-seq='" + seq + "' data-imdb='" + this.imdbURL + "' data-rating='" + this.rating +
 		"' data-episode='S" + _.padStart(this.season, 2, "0") +
-		"E" + _.padStart(this.episode, 2, "0") + "'><th>" +
+		"E" + _.padStart(this.episode, 2, "0") + "'><tr><th>" +
 		this.name + " (" + this.year + ")" + "</th><th>" +
 		(this.rating && this.rating.toFixed(1) || "???") + "</th><th>" + this.genre +
 		"</th><th>" + this.duration + "</th>" +
 		"</tr><tr><td colspan=4>" + this.description + "<br/>" +
-		"<a href='" + this.imdbURL + "'>" + this.imdbURL + "</a></td></tr>\n";
+		"<a href='" + this.imdbURL + "'>" + this.imdbURL + "</a></td></tr></tbody>\n";
 });
 
 
@@ -179,9 +186,11 @@ logger.say("logging enabled");
 scrapeShows = reportErrors(function (casper) {
 	var pageNum = 0,
 		i,
-		baseURL = "https://eztv.ag/",
+		baseURL = "https://eztv.io/",
 		url = baseURL,
-		titles = [];
+		titles = [],
+		showsCache = {},
+		unknownShows = [];
 
 	logger.say("looping over eztv pages");
 
@@ -220,20 +229,40 @@ scrapeShows = reportErrors(function (casper) {
 		var casper = this;
 
 		titles = _.uniqBy(titles, 'show');
+		try {
+			showsCache = JSON.parse(fs.read("shows.json"));
+		} catch (e) {
+			this.echo("Cache not found: " + e);
+		}
 
 		shows = titles.map(function (title) {
 			return new TVShow(title, casper);
 		});
 
+		shows.forEach(function (show) {
+			var showCache = showsCache[_.snakeCase(show.initialName)];
+			if (showCache) {
+				_.extend(show, showCache);
+			}
+		});
+
 		this.echo("finding imdb links for " + shows.length + " shows");
 
 		shows.forEach(function (show) {
-			show.imdbLink();
+		    if (show.imdbURL) {
+				casper.echo("(Cached) IMDB link for '" + show.initialName + "' is " + show.imdbURL);
+			} else {
+				show.imdbLink();
+			}
 		});
 	}));
 
 	casper.then(reportErrors(function () {
 		this.echo("filtering shows with no imdb link");
+
+		unknownShows = shows.filter(function (show) {
+			return !show.imdbURL;
+		});
 
 		shows = shows.filter(function (show) {
 			return show.imdbURL;
@@ -242,20 +271,51 @@ scrapeShows = reportErrors(function (casper) {
 		this.echo("finding imdb info for remaining " + shows.length + " shows");
 
 		shows.forEach(function (show) {
-			show.imdbInfo();
+			if (show.name) {
+				casper.echo("(Cached) IMDB info for '" + show.initialName);
+			} else {
+				show.imdbInfo();
+			}
 		});
 	}));
 
 	casper.then(reportErrors(function () {
 		var casper = this,
 			tmpl,
-			html = "";
+			html = "",
+			showsByName = {},
+			showsByNameJSON;
 
 		this.echo("filtering shows with no imdb info");
+
+		unknownShows.push.apply(unknownShows, shows.filter(function (show) {
+			return !show.rating;
+		}));
 
 		shows = shows.filter(function (show) {
 			return show.rating;
 		});
+
+		this.echo("Writing show info to disk cache");
+
+		shows.forEach(function (show) {
+			showsByName[_.snakeCase(show.initialName)] = _.pick(
+				show, ["season", "episode", "imdbURL", "year", "genre", "rating", "duration", "description",  "name"]);
+		});
+
+		_.assign(showsCache, showsByName);
+
+		try {
+			showsByNameJSON = JSON.stringify(showsCache);
+		} catch (e) {
+			this.echo("Failed to stringify show list: " + e);
+		}
+		try {
+		    // casper.echo("Writing shows cache:\n" + showsByNameJSON);
+			fs.write("shows.json", showsByNameJSON, {mode: "w", charset: "utf-8"});
+		} catch (e) {
+			this.echo("Failed to write cache: " + e);
+		}
 
 		this.echo("constructing html for remaining " + shows.length + " shows");
 
@@ -264,8 +324,8 @@ scrapeShows = reportErrors(function (casper) {
 
 		this.echo("getting table rows");
 
-		shows.forEach(function (show) {
-			html += show.html();
+		shows.forEach(function (show, idx) {
+			html += show.html(idx);
 		});
 		html += "</tbody>";
 
@@ -288,6 +348,10 @@ scrapeShows = reportErrors(function (casper) {
 		this.echo("writing html");
 
 		fs.write("tvshows.html", html, { mode: "w", charset: "utf-8" });
+
+		this.echo("Unknown shows:\n" + _.uniq(unknownShows.map(function (show) {
+			return "   " + show.initialName;
+		})).sort().join("\n"));
 	}));
 });
 

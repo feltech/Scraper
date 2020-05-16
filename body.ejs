@@ -1,117 +1,199 @@
 <!DOCTYPE HTML>
 <html lang="en">
 <head>
-	<meta charset="UTF-8" />
-   	<meta http-equiv="X-UA-Compatible" content="IE=edge" />
-   	<meta name="viewport" content="width=device-width, initial-scale=1" />
-	<link rel="icon" href="/favicon.ico" />
-	<title>Telescuff - <%= headerTitle %></title>
-	<link
-		rel='stylesheet'
-		href='https://maxcdn.bootstrapcdn.com/bootswatch/3.3.7/united/bootstrap.min.css' />
-	<script src='https://code.jquery.com/jquery-3.1.1.slim.min.js'></script>
-	<script src='https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js'></script>
-	<script
-		src='https://cdnjs.cloudflare.com/ajax/libs/localforage/1.5.0/localforage.min.js'
-	></script>
-	<style>
-		body {
-			font-size: 15px;
-/*			background-color: #f3f3f3;*/
-		}
-		h1 > div > span {
-			vertical-align: middle;
-		}
-		table.table {
-			margin: 5px;
-			width: auto;
-			box-shadow: 0 1px 2px rgba(0,0,0,0.3);
-			border-radius: 3px;
-/*			background-color: #fff;*/
-		}
-		span.label {
-			padding: .2em .6em;
-			margin-left: 1em;
-			vertical-align: middle;
-			border-radius: 1em;
-		}
-	</style>
+    <meta charset="UTF-8"/>
+    <meta http-equiv="X-UA-Compatible" content="IE=edge"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1"/>
+    <link rel="icon" href="/favicon.ico"/>
+    <title>Telescuff - <%= headerTitle %></title>
+    <link rel='stylesheet'
+            href='https://maxcdn.bootstrapcdn.com/bootswatch/3.3.7/united/bootstrap.min.css'/>
+    <script src='https://code.jquery.com/jquery-3.1.1.slim.min.js'></script>
+    <script src='https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js'></script>
+    <script src='https://cdnjs.cloudflare.com/ajax/libs/localforage/1.5.0/localforage.min.js'
+    ></script>
+    <style>
+        body {
+            font-size: 15px;
+            /*			background-color: #f3f3f3;*/
+        }
 
-	<script>
-		$(document).ready(function () {
-			localforage.getItem("<%= page %>links").then(function decorate (prevLinks) {
+        h1 > div > span {
+            vertical-align: middle;
+        }
 
-				if (prevLinks === null) {
-					prevLinks = [];
-				}
+        table.table {
+            margin: 5px;
+            width: auto;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+            border-radius: 3px;
+            /*			background-color: #fff;*/
+        }
 
-				var currLinks = [];
-				$("[data-imdb]").each(function () {
-					var $el = $(this),
-						link = ($el.data().episode || "") + $el.data().imdb;
-					currLinks.push(link);
+        span.label {
+            padding: .2em .6em;
+            margin-left: 1em;
+            vertical-align: middle;
+            border-radius: 1em;
+        }
 
-					if (prevLinks.indexOf(link) === -1) {
-						$el.find('th').first().append(
-							$('<span class="label label-primary">NEW</span>')
-						);
-					}
-				});
+        input[type="checkbox"] {
+            margin-bottom: 0px;
+            margin-top: 0px;
+        }
 
-				localforage.setItem("<%= page %>links", currLinks);
-			});
-		});
-	</script>
+    </style>
+
+    <script>
+        $(document).ready(function () {
+            var urlParams = new URLSearchParams(window.location.hash.substr(1));
+
+            localforage.getItem("<%= page %>links").then(function decorate(prevLinks) {
+                var isSortRating, isFilterNew,
+                    currLinks = [];
+                if (prevLinks === null) {
+                    prevLinks = [];
+                }
+
+                $("[data-imdb]").each(function () {
+                    var $el = $(this),
+                        data = $el.data(),
+                        hash = (data.episode || "") + data.imdb;
+                    currLinks.push(hash);
+
+                    if (prevLinks.indexOf(hash) === -1) {
+                        $el.attr("data-new", true).find('th').first().append(
+                            $('<span class="label label-primary">NEW</span>')
+                        );
+                    } else {
+                        $el.attr("data-new", false);
+                    }
+                });
+                localforage.setItem("<%= page %>links", currLinks);
+
+                isSortRating = urlParams.get("sort-rating") === "true";
+                isFilterNew = urlParams.get("filter-new") === "true";
+                $("#sort-rating").prop("checked", isSortRating);
+                $("#filter-new").prop("checked", isFilterNew);
+                sortRating(isSortRating);
+                filterNew(isFilterNew);
+                updateLinks();
+            });
+
+            $("#sort-rating").change(function () {
+                urlParams.set("sort-rating", this.checked.toString());
+                sortRating(this.checked);
+                updateAddressBarAndLinks()
+            });
+
+            $("#filter-new").change(function () {
+                urlParams.set("filter-new", this.checked.toString());
+                filterNew(this.checked);
+                updateAddressBarAndLinks()
+            });
+
+            function sortRating(isEnabled) {
+                var sortBy = isEnabled ? "rating" : "seq",
+                    order = isEnabled ? 1: -1;
+                $("[data-" + sortBy + "]").sort(function (lhs, rhs) {
+                    return $(lhs).data(sortBy) < $(rhs).data(sortBy) ? order : -1 * order;
+                }).appendTo($("#table"));
+            }
+
+            function filterNew(isEnabled) {
+                if (isEnabled) {
+                    $("[data-new='false']").hide();
+                } else {
+                    $("[data-new='false']").show();
+                }
+                if (isEnabled && !$("[data-new='true']").length) {
+                    $("#table").hide();
+                } else {
+                    $("#table").show();
+                }
+            }
+
+            function updateAddressBarAndLinks() {
+                window.location.hash = urlParams.toString();
+                updateLinks();
+            }
+
+            function updateLinks() {
+                $("#navbar-links > ul li > a").each(function () {
+                    var $el = $(this),
+                        href = $el.attr("href").split("#")[0];
+                    $el.attr("href", [href, urlParams.toString()].join("#"));
+                });
+            }
+        });
+    </script>
 </head>
 <body>
-	<nav class='navbar navbar-default'>
-		<div class='container-fluid'>
-			<div class='navbar-header'>
-				<button
-					type="button" class="navbar-toggle collapsed"
-					data-toggle="collapse" data-target="#navbar-links"
-					aria-expanded="false"
-				>
-					<span class="icon-bar"></span>
-					<span class="icon-bar"></span>
-					<span class="icon-bar"></span>
-				</button>
-				<a class='navbar-brand' href='index.html'>Telescuff
-				<small class="hidden-xs hidden-sm">
-					- TV & movie data scraped from the web</small></a>
-			</div>
+<nav class='navbar navbar-default'>
+    <div class='container-fluid'>
+        <div class='navbar-header'>
+            <button
+                    type="button" class="navbar-toggle collapsed"
+                    data-toggle="collapse" data-target="#navbar-links"
+                    aria-expanded="false"
+            >
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+            </button>
+            <a class='navbar-brand' href='index.html'>Telescuff
+                <small class="hidden-xs hidden-sm">
+                    - TV & movie data scraped from the web</small></a>
+        </div>
 
-			<div class='collapse navbar-collapse' id='navbar-links'>
-				<ul class='nav navbar-nav'>
-					<li <% if (page === "tvshows") { %>class='active'<% } %>><a
-						href='tvshows.html'>TV Shows</a></li>
-					<li <% if (page === "movierentals") { %>class='active'<% } %>><a
-						href='movierentals.html'>Movie Rentals</a></li>
-				</ul>
+        <div class='collapse navbar-collapse' id='navbar-links'>
+            <ul class='nav navbar-nav'>
+                <li <% if (page === "tvshows") { %>class='active'
+                        <% } %>
+                ><a href='tvshows.html'>TV Shows</a></li>
+                <li <% if (page === "movierentals") { %>class='active'
+                        <% } %>
+                ><a href='movierentals.html'>Movie Rentals</a></li>
+            </ul>
 
-				<p class='navbar-text navbar-right'>Updated
-					<%= (new Date()).toUTCString() %>
-				</p>
-			</div>
-		</div>
-	</nav>
-	<div class='page-header'>
-		<div class="container">
-			<h1 class="text-center">
-				<div>
-					<span class='glyphicon glyphicon-<%= icon %>'></span>
-					<span><%= headerTitle %></span>
-				</div>
-				<small><%= headerSubtitle %></small>
-			</h1>
-		</div>
-	</div>
-	<table class='table'>
-		<%= tableContent %>
-	</table>
-		
-	<footer class='text-center'>List scraped from 
-		<a href='<%= listSrcURL %>'><%= listSrcName %></a>.  
-		Info scraped from <a href='http://www.imdb.com'>IMDB</a>.</footer> 		
+            <p class='navbar-text navbar-right'>Updated
+                <%= (new Date()).toUTCString() %>
+            </p>
+        </div>
+    </div>
+</nav>
+<div class='page-header'>
+    <div class="container">
+        <h1 class="text-center">
+            <div>
+                <span class='glyphicon glyphicon-<%= icon %>'></span>
+                <span><%= headerTitle %></span>
+            </div>
+            <small><%= headerSubtitle %></small>
+        </h1>
+    </div>
+</div>
+<div class="container">
+    <div class="center-block text-center">
+        <label>
+            <input id="sort-rating" type="checkbox" />
+            Sort by rating
+        </label>
+        &nbsp;&nbsp;&nbsp;&nbsp;
+        <label>
+            <input id="filter-new" type="checkbox" /><span
+                    class="label label-primary">NEW</span>
+        </label>
+    </div>
+</div>
+<table id="table" class='table'>
+    <%= tableContent %>
+</table>
+
+<footer class='text-center'>List scraped from
+    <a href='<%= listSrcURL %>'><%= listSrcName %></a>.
+    Info scraped from <a href='http://www.imdb.com'>IMDB</a>.
+</footer>
+
 </body>
 </html>
