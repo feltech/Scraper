@@ -2,8 +2,10 @@
 /scrape.js
 /.jshintrc
 /.project
-/.sublime-project
 /movierentals.html
 /tvshows.html
 /.pydevproject
 /.settings
+/.idea
+/package-lock.json
+/shows.json
