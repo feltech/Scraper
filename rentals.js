@@ -200,7 +200,8 @@ casper.then(function () {
 		headerSubtitle: "overview of movie rentals rated greater than " + minRating.toFixed(1) +
 		" from the last " + numWeeks + " weeks",
 		tableContent: html, listSrcURL: "http://www.officialcharts.com",
-		listSrcName: "officialcharts.com"
+		listSrcName: "officialcharts.com",
+		lastUpdatedFile: "moviesupdated.json"
 	});
 
 	this.echo("writing html");

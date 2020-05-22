@@ -105,6 +105,8 @@ if [ $MOVIERENTALS -eq 1 ]; then
   elif [ "$USER" != "" ]; then
     echo "Uploading movierentals to Neocities";
     curl -F "movierentals.html=@movierentals.html" "https://$USER:$PASS@neocities.org/api/upload"
+    echo '{}' > movieupdated.json
+    curl -F "movieupdated.json=@movieupdated.html" "https://$USER:$PASS@neocities.org/api/upload"
   fi
 fi
 
@@ -121,5 +123,7 @@ if [ $TVSHOWS -eq 1 ]; then
   elif [ "$USER" != "" ]; then
     echo "Uploading tvshows to Neocities";
     curl -F "tvshows.html=@tvshows.html" "https://$USER:$PASS@neocities.org/api/upload"
+    echo '{}' > tvupdated.json
+    curl -F "tvupdated.json=@tvupdated.html" "https://$USER:$PASS@neocities.org/api/upload"
   fi
 fi

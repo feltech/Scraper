@@ -46,7 +46,8 @@
 
     <script>
         $(document).ready(function () {
-            var urlParams = new URLSearchParams(window.location.hash.substr(1));
+            var urlParams = new URLSearchParams(window.location.hash.substr(1)),
+                currModified = new Date(<%= Date.now().toISOString() %>);
 
             localforage.getItem("<%= page %>links").then(function decorate(prevLinks) {
                 var isSortRating, isFilterNew,
@@ -78,6 +79,8 @@
                 sortRating(isSortRating);
                 filterNew(isFilterNew);
                 updateLinks();
+
+                updateLastUpdated();
             });
 
             $("#sort-rating").change(function () {
@@ -125,6 +128,18 @@
                     $el.attr("href", [href, urlParams.toString()].join("#"));
                 });
             }
+
+            function updateLastUpdated() {
+                $.getJSON("<%= lastUpdatedFile %>").then(function (_data, _textStatus, jqXHR) {
+                    var lastModified = new Date(jqXHR.getResponseHeader("Last-Modified"));
+                    if (lastModified.getTime() !== currModified.getTime()) {
+                        currModified = lastModified;
+                        $("#last-modified").html(currModified.toUTCString() + " (updated)");
+                    }
+                }).always(function () {
+                    setTimeout(updateLastModified, 60000);
+                });
+            }
         });
     </script>
 </head>
@@ -156,9 +171,7 @@
                 ><a href='movierentals.html'>Movie Rentals</a></li>
             </ul>
 
-            <p class='navbar-text navbar-right'>Updated
-                <%= (new Date()).toUTCString() %>
-            </p>
+            <p id="last-modified" class='navbar-text navbar-right'></p>
         </div>
     </div>
 </nav>

@@ -342,7 +342,8 @@ scrapeShows = reportErrors(function (casper) {
 		html = tmpl({
 			page: "tvshows", icon: "blackboard", headerTitle: "TV Shows",
 			headerSubtitle: "overview of popular shows airing in the last couple of days",
-			tableContent: html, listSrcURL: "https://eztv.ag", listSrcName: "EZTV"
+			tableContent: html, listSrcURL: "https://eztv.ag", listSrcName: "EZTV",
+			lastUpdatedFile: "tvupdated.json"
 		});
 
 		this.echo("writing html");
