@@ -47,7 +47,7 @@
     <script>
         $(document).ready(function () {
             var urlParams = new URLSearchParams(window.location.hash.substr(1)),
-                currModified = new Date(<%= (new Date()).toISOString() %>);
+                currModified = new Date("<%= (new Date()).toISOString() %>");
 
             localforage.getItem("<%= page %>links").then(function decorate(prevLinks) {
                 var isSortRating, isFilterNew,
