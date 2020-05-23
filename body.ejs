@@ -83,7 +83,8 @@
                 filterNew(isFilterNew);
                 updateLinks();
 
-                updateLastUpdated();
+                $("#last-modified").html(currModified.toUTCString());
+                updateLastModified();
             });
 
             $("#sort-rating").change(function () {
@@ -132,7 +133,7 @@
                 });
             }
 
-            function updateLastUpdated() {
+            function updateLastModified() {
                 $.getJSON("<%= lastUpdatedFile %>").then(function (_data, _textStatus, jqXHR) {
                     var lastModified = new Date(jqXHR.getResponseHeader("Last-Modified"));
                     if (lastModified.getTime() !== currModified.getTime()) {
