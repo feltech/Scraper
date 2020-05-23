@@ -19,6 +19,10 @@ PASS=""
 MOVIERENTALS=0
 # Whether to scrape tv shows
 TVSHOWS=0
+# casperjs executable
+CASPER=${CASPER:-casperjs}
+# Script path
+SCRAPER=${SCRAPER:-.}
 
 # Parse the command line options.
 
@@ -92,10 +96,12 @@ case "$1" in
     ;;
 esac
 
+pushd "$SCRAPER"
+
 if [ $MOVIERENTALS -eq 1 ]; then
 
   # Scrape rentals chart.
-  casperjs --ignore-ssl-errors=true --ssl-protocol=any --output-encoding=utf8 rentals.js $WEEKS $RATING
+  $CASPER --ignore-ssl-errors=true --ssl-protocol=any --output-encoding=utf8 rentals.js $WEEKS $RATING
 
   # Email if failure
   if [ $? -ne 0 -a "$EMAIL" != "" ]; then
@@ -113,7 +119,7 @@ fi
 if [ $TVSHOWS -eq 1 ]; then
 
   # Scrape tv shows chart.
-  casperjs --ignore-ssl-errors=true --ssl-protocol=any --output-encoding=utf8 tvshows.js $EZTV
+  $CASPER --ignore-ssl-errors=true --ssl-protocol=any --output-encoding=utf8 tvshows.js $EZTV
 
   # Email if failure
   if [ $? -ne 0 -a "$EMAIL" != "" ]; then
@@ -127,3 +133,5 @@ if [ $TVSHOWS -eq 1 ]; then
     curl -F "tvupdated.json=@tvupdated.html" "https://$USER:$PASS@neocities.org/api/upload"
   fi
 fi
+
+popd
