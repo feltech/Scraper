@@ -111,8 +111,8 @@ if [ $MOVIERENTALS -eq 1 ]; then
   elif [ "$USER" != "" ]; then
     echo "Uploading movierentals to Neocities";
     curl -F "movierentals.html=@movierentals.html" "https://$USER:$PASS@neocities.org/api/upload"
-	echo "{\"lastModified\": \"$(date -Iseconds)\"}" > movieupdated.json
-    curl -F "movieupdated.json=@movieupdated.json" "https://$USER:$PASS@neocities.org/api/upload"
+    echo "{\"lastModified\": \"$(date -Iseconds)\"}" > movieupdated.json
+    curl -F "moviesupdated.json=@movieupdated.json" "https://$USER:$PASS@neocities.org/api/upload"
   fi
 fi
 
