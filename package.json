@@ -5,7 +5,11 @@
   "dependencies": {
     "casperjs": "^1.1.4",
     "episode-parser": "^1.2.0",
-    "lodash": "^4.5.0"
+    "lodash": "^4.5.0",
+    "simple-node-logger": "*",
+    "moment": "*",
+    "puppeteer": "3.0",
+    "argparse": "*"
   },
   "repository": {
     "type": "git",

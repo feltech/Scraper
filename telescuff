@@ -101,7 +101,7 @@ pushd "$SCRAPER"
 if [ $MOVIERENTALS -eq 1 ]; then
 
   # Scrape rentals chart.
-  $CASPER --ignore-ssl-errors=true --ssl-protocol=any --output-encoding=utf8 rentals.js $WEEKS $RATING
+  nodejs --unhandled-rejections=strict rentals.puppeteer.js --weeks=$WEEKS --rating=$RATING
 
   # Email if failure
   if [ $? -ne 0 -a "$EMAIL" != "" ]; then
