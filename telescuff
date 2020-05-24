@@ -101,7 +101,7 @@ pushd "$SCRAPER"
 if [ $MOVIERENTALS -eq 1 ]; then
 
   # Scrape rentals chart.
-  nodejs --unhandled-rejections=strict rentals.puppeteer.js --weeks=$WEEKS --rating=$RATING
+  node --unhandled-rejections=strict rentals.puppeteer.js --weeks=$WEEKS --rating=$RATING
 
   # Email if failure
   if [ $? -ne 0 -a "$EMAIL" != "" ]; then
