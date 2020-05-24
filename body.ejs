@@ -18,19 +18,18 @@
     <style>
         body {
             font-size: 15px;
-            /*			background-color: #f3f3f3;*/
+            /*            background-color: #f3f3f3;*/
         }
 
         h1 > div > span {
             vertical-align: middle;
         }
-
         table.table {
             margin: 5px;
             width: auto;
             box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
             border-radius: 3px;
-            /*			background-color: #fff;*/
+            /*            background-color: #fff;*/
         }
 
         span.label {
@@ -50,7 +49,7 @@
     <script>
         $(document).ready(function () {
             var urlParams = new URLSearchParams(window.location.hash.substr(1)),
-                currModified = new Date("<%= (new Date()).toISOString() %>");
+                currModified;
 
             localforage.getItem("<%= page %>links").then(function decorate(prevLinks) {
                 var isSortRating, isFilterNew,
@@ -83,7 +82,6 @@
                 filterNew(isFilterNew);
                 updateLinks();
 
-                $("#last-modified").html(currModified.toUTCString());
                 updateLastModified();
             });
 
@@ -136,10 +134,13 @@
             function updateLastModified() {
                 $.getJSON("<%= lastUpdatedFile %>").then(function (_data, _textStatus, jqXHR) {
                     var lastModified = new Date(jqXHR.getResponseHeader("Last-Modified"));
-                    if (lastModified.getTime() !== currModified.getTime()) {
-                        currModified = lastModified;
-                        $("#last-modified").html(currModified.toUTCString() + " (updated)");
+                    if (currModified == undefined) {
+                        $("#last-modified").html(lastModified.toUTCString());
+                    } else if (lastModified.getTime() !== currModified.getTime()) {
+                        $("#last-modified").html(lastModified.toUTCString() + " (reload to update)");
                     }
+                    currModified = lastModified;
+
                 }).always(function () {
                     setTimeout(updateLastModified, 60000);
                 });
