@@ -244,7 +244,7 @@ class Scraper {
 		log.info("Parsing IMDB info for '" + show.name + "' from " + this.page.url());
 
 		try {
-			let imdbInfo = await this.page.evaluate(function () {
+			imdbInfo = await this.page.evaluate(function () {
 				function text(selector) {
 					return $(selector).first().contents().not($(selector).children()).text().trim();
 				}
