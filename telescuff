@@ -117,15 +117,21 @@ if [ $MOVIERENTALS -eq 1 ]; then
 fi
 
 if [ $TVSHOWS -eq 1 ]; then
+  last_modified="$(stat -c %y tvshows.html)"
 
   # Scrape tv shows chart.
   node --unhandled-rejections=strict tvshows.puppeteer.js --pages=$EZTV
 #  $CASPER --ignore-ssl-errors=true --ssl-protocol=any --output-encoding=utf8 tvshows.js $EZTV
 
+  curr_modified="$(stat -c %y tvshows.html)"
+
   # Email if failure
-  if [ $? -ne 0 -a "$EMAIL" != "" ]; then
-    echo "Emailing failure to $EMAIL";
-    echo "Failed at $(date)" | mail -a "Message-ID:<scripts@telescuff>" -s "CasperJS tvshows script failed" $EMAIL;
+  if [ $? -ne 0 ] || [ "$curr_modified" == "$last_modified" ]; then
+    echo "Failed, not uploading"
+    if [ "$EMAIL" != "" ]; then
+      echo "Emailing failure to $EMAIL";
+      echo "Failed at $(date)" | mail -a "Message-ID:<scripts@telescuff>" -s "CasperJS tvshows script failed" $EMAIL;
+    fi
 
   elif [ "$USER" != "" ]; then
     echo "Uploading tvshows to Neocities";
@@ -133,6 +139,7 @@ if [ $TVSHOWS -eq 1 ]; then
     echo "{\"lastModified\": \"$(date -Iseconds)\"}" > tvupdated.json
     curl -F "tvupdated.json=@tvupdated.json" "https://$USER:$PASS@neocities.org/api/upload"
   fi
+
 fi
 
 popd

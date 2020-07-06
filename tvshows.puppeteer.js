@@ -172,7 +172,8 @@ class Scraper {
 
 	async eztv() {
 		let url = _eztvURL,
-			titles = [];
+			titles = [],
+			pageTitles;
 
 		log.info("Extracting titles");
 		for (let pageNum = 0; pageNum <= this._numPages; pageNum++) {
@@ -182,7 +183,7 @@ class Scraper {
 
 			log.debug("extracting titles");
 
-			var pageTitles = await this.page.evaluate(function () {
+			pageTitles = await this.page.evaluate(function () {
 				return $("a.epinfo").map(function () {
 					return $(this).text().trim();
 				}).get();
@@ -234,6 +235,7 @@ class Scraper {
 	}
 
 	async imdb(show) {
+		let imdbInfo;
 		log.info("Opening IMDB info for '" + show.name + "' from " + show.url);
 
 		await this.page.goto(show.url);
@@ -241,35 +243,34 @@ class Scraper {
 
 		log.info("Parsing IMDB info for '" + show.name + "' from " + this.page.url());
 
-		let imdbInfo = await this.page.evaluate(function () {
-			function text(selector) {
-				return $(selector).first().contents().not($(selector).children()).text().trim();
-			}
+		try {
+			let imdbInfo = await this.page.evaluate(function () {
+				function text(selector) {
+					return $(selector).first().contents().not($(selector).children()).text().trim();
+				}
 
-			function num(selector) {
-				return parseFloat(text(selector), 10);
-			}
+				function num(selector) {
+					return parseFloat(text(selector), 10);
+				}
 
-			return {
-				duration: $("#titleDetails > div > h4:contains('Runtime')").parent()
-					.find("time").text().trim(),
-				rating: num("div.ratingValue > strong > span"),
-				name: text("div.title_wrapper > h1"),
-				year: /[0-9]{4}/.exec(
-					$("#titleDetails > div > h4:contains('Release Date')").parent().text()
-				)[0],
-				description: $("#titleStoryLine > div > p > span").text().trim(),
-				genre: $("#titleStoryLine > div > h4:contains('Genres')").parent().find("a").map(
-					function () {
-						return $(this).text().trim();
-					}
-				).toArray().join(", ")
-			};
-
-		});
-
-		if (!imdbInfo) {
-			log.warn(show.initialName + " has an unexpected imdb page: " + show.url);
+				return {
+					duration: $("#titleDetails > div > h4:contains('Runtime')").parent()
+						.find("time").text().trim(),
+					rating: num("div.ratingValue > strong > span"),
+					name: text("div.title_wrapper > h1"),
+					year: /[0-9]{4}/.exec(
+						$("#titleDetails > div > h4:contains('Release Date')").parent().text()
+					)[0],
+					description: $("#titleStoryLine > div > p > span").text().trim(),
+					genre: $("#titleStoryLine > div > h4:contains('Genres')").parent().find("a").map(
+						function () {
+							return $(this).text().trim();
+						}
+					).toArray().join(", ")
+				};
+			});
+		} catch (e) {
+			log.error(`Failed to parse IMDB page for "${show.initialName}": ${show.url}`);
 			return;
 		}
 		log.debug(_.truncate(JSON.stringify(imdbInfo), {length: 1000}));
