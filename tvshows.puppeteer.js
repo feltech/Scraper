@@ -16,8 +16,8 @@ let _eztvURL = "https://eztv.io/";
 
 class Scraper {
 
-	constructor(numWeeks) {
-		this._numPages = numWeeks;
+	constructor(numPages) {
+		this._numPages = numPages;
 	}
 
 	async execute() {
@@ -175,7 +175,7 @@ class Scraper {
 			titles = [];
 
 		log.info("Extracting titles");
-		for (let pageNum = 0; pageNum <= numPages; pageNum++) {
+		for (let pageNum = 0; pageNum <= this._numPages; pageNum++) {
 			log.debug("opening eztv page: " + url);
 
 			await this.page.goto(url, {waitUntil: "domcontentloaded"});
