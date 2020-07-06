@@ -1,6 +1,5 @@
 const puppeteer = require("puppeteer");
 const _ = require("lodash");
-const moment = require("moment");
 const fs = require("fs");
 const ArgumentParser = require("argparse").ArgumentParser;
 

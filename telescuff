@@ -111,15 +111,16 @@ if [ $MOVIERENTALS -eq 1 ]; then
   elif [ "$USER" != "" ]; then
     echo "Uploading movierentals to Neocities";
     curl -F "movierentals.html=@movierentals.html" "https://$USER:$PASS@neocities.org/api/upload"
-    echo "{\"lastModified\": \"$(date -Iseconds)\"}" > movieupdated.json
-    curl -F "moviesupdated.json=@movieupdated.json" "https://$USER:$PASS@neocities.org/api/upload"
+    echo "{\"lastModified\": \"$(date -Iseconds)\"}" > moviesupdated.json
+    curl -F "moviesupdated.json=@moviesupdated.json" "https://$USER:$PASS@neocities.org/api/upload"
   fi
 fi
 
 if [ $TVSHOWS -eq 1 ]; then
 
   # Scrape tv shows chart.
-  $CASPER --ignore-ssl-errors=true --ssl-protocol=any --output-encoding=utf8 tvshows.js $EZTV
+  node --unhandled-rejections=strict tvshows.puppeteer.js --pages=$EZTV
+#  $CASPER --ignore-ssl-errors=true --ssl-protocol=any --output-encoding=utf8 tvshows.js $EZTV
 
   # Email if failure
   if [ $? -ne 0 -a "$EMAIL" != "" ]; then
