@@ -100,8 +100,7 @@ class Scraper {
 		_.assign(showsCache, showsByName);
 
 		try {
-			fs.writeFileSync(
-				"shows.json", JSON.stringify(showsCache), {mode: "w", charset: "utf-8"});
+			fs.writeFileSync("shows.json", JSON.stringify(showsCache));
 		} catch (e) {
 			log.warn("Failed to write cache: " + e);
 		}
