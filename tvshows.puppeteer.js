@@ -12,7 +12,7 @@ const log = SimpleNodeLogger.createSimpleLogger({
 });
 log.setLevel("debug");
 
-let _eztvURL = "https://eztv.io/";
+let _eztvURL = "https://eztv.re/";
 
 class Scraper {
 
@@ -32,7 +32,7 @@ class Scraper {
 		let shows = await this.eztv();
 
 		log.debug("loading shows from cache");
-		
+
 		try {
 			showsCache = JSON.parse(fs.readFileSync("shows.json"));
 		} catch (e) {
@@ -74,7 +74,7 @@ class Scraper {
 				await this.imdb(show);
 			}
 		}
-		
+
 		log.debug("filtering shows with no imdb info");
 
 		unknownShows.push.apply(unknownShows, shows.filter(function (show) {
@@ -94,7 +94,7 @@ class Scraper {
 
 		for (let show of shows) {
 			showsByName[_.snakeCase(show.initialName)] = _.pick(show, [
-				"season", "episode", "url", "year", "genre", "rating", "duration", 
+				"season", "episode", "url", "year", "genre", "rating", "duration",
 				"description",  "name"]);
 		}
 		_.assign(showsCache, showsByName);
@@ -207,7 +207,7 @@ class Scraper {
 
 		return titles;
 	}
-	
+
 
 	async imdbLink(title) {
 		log.info("Search IMDB link for " + title.name);
@@ -287,7 +287,7 @@ class Scraper {
 
 		_.extend(show, imdbInfo);
 	}
-	
+
 	showHTML(show, seq) {
 		return "<tbody data-seq='" + seq + "' data-imdb='" + show.url + "' data-rating='" + show.rating +
 			"' data-episode='S" + _.padStart(show.season, 2, "0") +
