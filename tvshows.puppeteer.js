@@ -85,6 +85,9 @@ class Scraper {
 			return show.rating;
 		});
 
+		// Should already be de-duped when scraping EZTV, but some slip the net.
+		shows = _.uniqBy(shows, 'url');
+
 		if (shows.length === 0) {
 			log.info("Zero titles left after filtering");
 			return;
@@ -313,7 +316,7 @@ if (require.main === module) {
 	const parser = new ArgumentParser({
 		version: '1.0.0',
 		addHelp: true,
-		description: "Scrape rentals from officialcharts.com, filter by week/rating, furnish with" +
+		description: "Scrape TV shows from EZTV, furnish with" +
 			" info from IMDB, then write html of results"
 	});
 	parser.addArgument("--pages", {
