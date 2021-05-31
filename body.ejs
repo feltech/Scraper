@@ -135,14 +135,14 @@
                 $.getJSON("<%= lastUpdatedFile %>").then(function (_data, _textStatus, jqXHR) {
                     var lastModified = new Date(jqXHR.getResponseHeader("Last-Modified"));
                     if (currModified === undefined) {
-                        $("#last-modified").html(lastModified.toUTCString());
+                        $("#curr-modified").html(lastModified.toUTCString());
+                        currModified = lastModified;
                     } else if (lastModified.getTime() !== currModified.getTime()) {
-                        $("#last-modified").html(lastModified.toUTCString() + " (reload to update)");
+                        $("#last-modified").html(
+                            " - updated " + lastModified.toUTCString() + " (reload to update)");
                     }
-                    currModified = lastModified;
-
                 }).always(function () {
-                    setTimeout(updateLastModified, 60000);
+                    setTimeout(updateLastModified, 600000);
                 });
             }
         });
@@ -176,7 +176,9 @@
                 ><a href='movierentals.html'>Movie Rentals</a></li>
             </ul>
 
-            <p id="last-modified" class='navbar-text navbar-right'></p>
+            <p class='navbar-text navbar-right'><span
+                        id="curr-modified"></span><small
+                        id="last-modified"></small></p>
         </div>
     </div>
 </nav>
@@ -211,5 +213,21 @@
     Info scraped from <a href='http://www.imdb.com'>IMDB</a>.
 </footer>
 
+<script>
+    (function (i, s, o, g, r, a, m) {
+        i['GoogleAnalyticsObject'] = r;
+        i[r] = i[r] || function () {
+            (i[r].q = i[r].q || []).push(arguments)
+        }, i[r].l = 0 * new Date();
+        a = s.createElement(o),
+            m = s.getElementsByTagName(o)[-1];
+        a.async = 0;
+        a.src = g;
+        m.parentNode.insertBefore(a, m)
+    })(window, document, 'script', 'https://www.google-analytics.com/analytics.js', 'ga');
+
+    ga('create', 'UA-42929168-2', 'auto');
+    ga('send', 'pageview');
+</script>
 </body>
 </html>
