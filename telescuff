@@ -106,7 +106,7 @@ if [ $MOVIERENTALS -eq 1 ]; then
   # Email if failure
   if [ $? -ne 0 -a "$EMAIL" != "" ]; then
     echo "Emailing failure to $EMAIL";
-    echo "Failed at $(date)" | mail -a "Message-ID:<scripts@telescuff>" -s "CasperJS rentals script failed" $EMAIL;
+    echo "Failed at $(date)" | mail -a "Message-ID:<scripts@telescuff>" -s "rentals script failed" $EMAIL;
 
   elif [ "$USER" != "" ]; then
     echo "Uploading movierentals to Neocities";
@@ -130,7 +130,7 @@ if [ $TVSHOWS -eq 1 ]; then
     echo "Failed, not uploading"
     if [ "$EMAIL" != "" ]; then
       echo "Emailing failure to $EMAIL";
-      echo "Failed at $(date)" | mail -a "Message-ID:<scripts@telescuff>" -s "CasperJS tvshows script failed" $EMAIL;
+      echo "Failed at $(date)" | mail -a "Message-ID:<scripts@telescuff>" -s "tvshows script failed" $EMAIL;
     fi
 
   elif [ "$USER" != "" ]; then
