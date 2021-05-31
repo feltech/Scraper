@@ -38,7 +38,7 @@ class Scraper {
 		} catch (e) {
 			log.warn("Cache not found: " + e);
 		}
-		for (let show of shows){
+		for (let show of shows) {
 			let showCache = showsCache[_.snakeCase(show.initialName)];
 			if (showCache) {
 				_.extend(show, showCache);
@@ -78,11 +78,11 @@ class Scraper {
 		log.debug("filtering shows with no imdb info");
 
 		unknownShows.push.apply(unknownShows, shows.filter(function (show) {
-			return !show.rating;
+			return !show.description;
 		}));
 
 		shows = shows.filter(function (show) {
-			return show.rating;
+			return show.description;
 		});
 
 		// Should already be de-duped when scraping EZTV, but some slip the net.
@@ -98,7 +98,7 @@ class Scraper {
 		for (let show of shows) {
 			showsByName[_.snakeCase(show.initialName)] = _.pick(show, [
 				"season", "episode", "url", "year", "genre", "rating", "duration",
-				"description",  "name"]);
+				"description", "name"]);
 		}
 		_.assign(showsCache, showsByName);
 
@@ -154,6 +154,7 @@ class Scraper {
 		try {
 			// Open browser.
 			this.browser = await puppeteer.launch({
+				// headless: false,
 				args: [
 					'--no-sandbox',
 					'--disable-setuid-sandbox'
@@ -241,12 +242,13 @@ class Scraper {
 		log.info("Opening IMDB info for '" + show.name + "' from " + show.url);
 
 		await this.page.goto(show.url);
-		await this.page.waitForSelector("div.title_wrapper > h1");
+		await this.page.waitForSelector("[data-testid='hero-title-block__title'], div.title_wrapper > h1");
 
 		log.info("Parsing IMDB info for '" + show.name + "' from " + this.page.url());
 
 		try {
 			imdbInfo = await this.page.evaluate(function () {
+
 				function text(selector) {
 					return $(selector).first().contents().not($(selector).children()).text().trim();
 				}
@@ -255,24 +257,78 @@ class Scraper {
 					return parseFloat(text(selector), 10);
 				}
 
-				return {
-					duration: $("#titleDetails > div > h4:contains('Runtime')").parent()
-						.find("time").text().trim(),
-					rating: num("div.ratingValue > strong > span"),
-					name: text("div.title_wrapper > h1"),
-					year: /[0-9]{4}/.exec(
-						$("#titleDetails > div > h4:contains('Release Date')").parent().text()
-					)[0],
-					description: $("#titleStoryLine > div > p > span").text().trim(),
-					genre: $("#titleStoryLine > div > h4:contains('Genres')").parent().find("a").map(
-						function () {
-							return $(this).text().trim();
-						}
-					).toArray().join(", ")
-				};
+				function $$(selector) {
+					return Array.from(document.querySelectorAll(selector));
+				}
+
+				function $q(selector) {
+					return document.querySelector(selector);
+				}
+
+				function $children(selector) {
+					try {
+						return Array.from(document.querySelector(selector).children);
+					} catch (e) {
+						console.error("Failed to query children of " + selector);
+						return [];
+					}
+				}
+
+				function $texts(els) {
+					return els.map((el) => el.textContent.trim()).join(", ");
+				}
+
+				function $first(arr)
+				{
+					return arr && arr[0] || "???";
+				}
+
+				try {
+
+					return {
+						duration: $$("span.ipc-metadata-list-item__label").filter(
+							(el) => el.innerText.includes("Runtime")
+						).map((el) => el.parentElement.querySelector(
+							".ipc-metadata-list-item__list-content-item"
+						).textContent.trim()).join(", "),
+
+						rating: $children(
+							"[data-testid='hero-title-block__aggregate-rating__score']"
+						).map((el) => parseFloat(el.textContent.trim(), 10))[0],
+
+						name: $q("[data-testid='hero-title-block__title']").textContent,
+
+						year: $texts($$("a.ipc-link").filter(
+							(el) => el.attributes.href &&
+								el.attributes.href.value.endsWith("#releases")
+						)),
+
+						description: $q("[data-testid='plot-xl']").textContent.trim(),
+
+						genre: $texts($children("[data-testid='genres']"))
+					};
+				} catch (e) {
+					console.warn("IMDB new layout failed, trying old layout", e);
+
+					return {
+						duration: $("#titleDetails > div > h4:contains('Runtime')").parent()
+							.find("time").text().trim(),
+						rating: num("div.ratingValue > strong > span"),
+						name: text("div.title_wrapper > h1"),
+						year: $first(/[0-9]{4}/.exec(
+							$("#titleDetails > div > h4:contains('Release Date')").parent().text()
+						)),
+						description: $("#titleStoryLine > div > p > span").text().trim(),
+						genre: $("#titleStoryLine > div > h4:contains('Genres')").parent().find("a").map(
+							function () {
+								return $(this).text().trim();
+							}
+						).toArray().join(", ")
+					};
+				}
 			});
 		} catch (e) {
-			log.error(`Failed to parse IMDB page for "${show.initialName}": ${show.url}`);
+			log.error(`Failed to parse IMDB page for "${show.initialName}": ${show.url} ... `, e);
 			return;
 		}
 		log.debug(_.truncate(JSON.stringify(imdbInfo), {length: 1000}));
@@ -292,14 +348,20 @@ class Scraper {
 	}
 
 	showHTML(show, seq) {
-		return "<tbody data-seq='" + seq + "' data-imdb='" + show.url + "' data-rating='" + show.rating +
-			"' data-episode='S" + _.padStart(show.season, 2, "0") +
-			"E" + _.padStart(show.episode, 2, "0") + "'><tr><th>" +
-			show.name + " (" + show.year + ")" + "</th><th>" +
-			(show.rating && show.rating.toFixed(1) || "???") + "</th><th>" + show.genre +
-			"</th><th>" + show.duration + "</th>" +
-			"</tr><tr><td colspan=4>" + show.description + "<br/>" +
-			"<a href='" + show.url + "'>" + show.url + "</a></td></tr></tbody>\n";
+		try {
+
+			return "<tbody data-seq='" + seq + "' data-imdb='" + show.url + "' data-rating='" + show.rating +
+				"' data-episode='S" + _.padStart(show.season, 2, "0") +
+				"E" + _.padStart(show.episode, 2, "0") + "'><tr><th>" +
+				show.name + " (" + show.year + ")" + "</th><th>" +
+				(show.rating && show.rating.toFixed(1) || "???") + "</th><th>" + show.genre +
+				"</th><th>" + show.duration + "</th>" +
+				"</tr><tr><td colspan=4>" + show.description + "<br/>" +
+				"<a href='" + show.url + "'>" + show.url + "</a></td></tr></tbody>\n";
+		} catch (e) {
+			log.error("Failed to generate HTML for show:\n" + JSON.stringify(show));
+			throw e;
+		}
 	}
 
 	/**
