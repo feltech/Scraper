@@ -350,7 +350,7 @@ class Scraper {
 	showHTML(show, seq) {
 		try {
 
-			return "<tbody data-seq='" + seq + "' data-imdb='" + show.url + "' data-rating='" + show.rating +
+			return "<tbody data-seq='" + seq + "' data-imdb='" + show.url + "' data-rating='" + (show.rating || 0) +
 				"' data-episode='S" + _.padStart(show.season, 2, "0") +
 				"E" + _.padStart(show.episode, 2, "0") + "'><tr><th>" +
 				show.name + " (" + show.year + ")" + "</th><th>" +
