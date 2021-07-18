@@ -293,7 +293,7 @@ class Scraper {
 						).textContent.trim()).join(", "),
 
 						rating: $children(
-							"[data-testid='hero-title-block__aggregate-rating__score']"
+							"[data-testid='hero-rating-bar__aggregate-rating__score']"
 						).map((el) => parseFloat(el.textContent.trim(), 10))[0],
 
 						name: $q("[data-testid='hero-title-block__title']").textContent,
