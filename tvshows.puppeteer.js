@@ -242,11 +242,12 @@ class Scraper {
 		log.info("Opening IMDB info for '" + show.name + "' from " + show.url);
 
 		await this.page.goto(show.url);
-		await this.page.waitForSelector("[data-testid='hero-title-block__title'], div.title_wrapper > h1");
-
-		log.info("Parsing IMDB info for '" + show.name + "' from " + this.page.url());
 
 		try {
+			await this.page.waitForSelector(
+				"[data-testid='hero-title-block__title'], div.title_wrapper > h1");
+
+			log.info("Parsing IMDB info for '" + show.name + "' from " + this.page.url());
 			imdbInfo = await this.page.evaluate(function () {
 
 				function text(selector) {
