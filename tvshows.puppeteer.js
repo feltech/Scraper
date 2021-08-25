@@ -287,11 +287,8 @@ class Scraper {
 				try {
 
 					return {
-						duration: $$("span.ipc-metadata-list-item__label").filter(
-							(el) => el.innerText.includes("Runtime")
-						).map((el) => el.parentElement.querySelector(
-							".ipc-metadata-list-item__list-content-item"
-						).textContent.trim()).join(", "),
+						duration: $texts($$(
+							'ul[data-testid="hero-title-block__metadata"] > li:nth-child(4)')),
 
 						rating: $children(
 							"[data-testid='hero-rating-bar__aggregate-rating__score']"
@@ -299,10 +296,8 @@ class Scraper {
 
 						name: $q("[data-testid='hero-title-block__title']").textContent,
 
-						year: $texts($$("a.ipc-link").filter(
-							(el) => el.attributes.href &&
-								el.attributes.href.value.endsWith("#releases")
-						)),
+						year: $texts($$(
+							'ul[data-testid="hero-title-block__metadata"] > li:nth-child(2) > a')),
 
 						description: $q("[data-testid='plot-xl']").textContent.trim(),
 
