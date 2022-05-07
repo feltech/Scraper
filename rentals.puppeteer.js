@@ -193,41 +193,110 @@ class Scraper {
 		}
 	}
 
-	async imdb(title) {
-		log.info("Opening IMDB info for '" + title.name + "' from " + title.url);
+	async imdb(show) {
+		let imdbInfo;
+		log.info("Opening IMDB info for '" + show.name + "' from " + show.url);
 
-		await this.page.goto(title.url);
-		await this.page.waitForSelector("div.title_wrapper > h1");
+		await this.page.goto(show.url);
 
-		log.info("Parsing IMDB info for '" + title.name + "' from " + this.page.url());
+		try {
+			await this.page.waitForSelector(
+				"[data-testid='hero-title-block__title'], div.title_wrapper > h1");
 
-		let imdbInfo = await this.page.evaluate(function () {
-			function text(selector) {
-				return $(selector).contents().not($(selector).children()).text().trim();
-			}
+			log.info("Parsing IMDB info for '" + show.name + "' from " + this.page.url());
+			imdbInfo = await this.page.evaluate(function () {
 
-			function num(selector) {
-				return parseFloat(text(selector), 10);
-			}
+				function text(selector) {
+					return $(selector).first().contents().not($(selector).children()).text().trim();
+				}
 
-			return {
-				rating: num("div.ratingValue > strong > span"),
-				name: text("div.title_wrapper > h1"),
-				year: /[0-9]{4}/.exec(
-					$("#titleDetails > div > h4:contains('Release Date')").parent().text()
-				)[0],
-				description: $("#titleStoryLine > div > p > span").text().trim(),
-				genre: $("#titleStoryLine > div > h4:contains('Genres')").parent().find("a").map(
-					function () {
-						return $(this).text().trim();
+				function num(selector) {
+					return parseFloat(text(selector), 10);
+				}
+
+				function $$(selector) {
+					return Array.from(document.querySelectorAll(selector));
+				}
+
+				function $q(selector) {
+					return document.querySelector(selector);
+				}
+
+				function $children(selector) {
+					try {
+						return Array.from(document.querySelector(selector).children);
+					} catch (e) {
+						console.error("Failed to query children of " + selector);
+						return [];
 					}
-				).toArray().join(", ")
-			};
+				}
+
+				function $texts(els) {
+					return els.map((el) => el.textContent.trim()).join(", ");
+				}
+
+				function $first(arr)
+				{
+					return arr && arr[0] || "???";
+				}
+
+				try {
+
+					return {
+						duration: $texts($$(
+							'ul[data-testid="hero-title-block__metadata"] > li:nth-child(3)')),
+
+						rating: $children(
+							"[data-testid='hero-rating-bar__aggregate-rating__score']"
+						).map((el) => parseFloat(el.textContent.trim(), 10))[0],
+
+						name: $q("[data-testid='hero-title-block__title']").textContent,
+
+						year: $texts($$(
+							'ul[data-testid="hero-title-block__metadata"] > li:nth-child(1) > a')),
+
+						description: $q("[data-testid='plot-xl']").textContent.trim(),
+
+						genre: $texts($children("[data-testid='genres']"))
+					};
+				} catch (e) {
+					console.warn("IMDB new layout failed, trying old layout", e);
+
+					return {
+						duration: $("#titleDetails > div > h4:contains('Runtime')").parent()
+							.find("time").text().trim(),
+						rating: num("div.ratingValue > strong > span"),
+						name: text("div.title_wrapper > h1"),
+						year: $first(/[0-9]{4}/.exec(
+							$("#titleDetails > div > h4:contains('Release Date')").parent().text()
+						)),
+						description: $("#titleStoryLine > div > p > span").text().trim(),
+						genre: $("#titleStoryLine > div > h4:contains('Genres')").parent().find("a").map(
+							function () {
+								return $(this).text().trim();
+							}
+						).toArray().join(", ")
+					};
+				}
+			});
+		} catch (e) {
+			log.error(`Failed to parse IMDB page for "${show.initialName}": ${show.url} ... `, e);
+			return;
+		}
+		log.debug(_.truncate(JSON.stringify(imdbInfo), {length: 1000}));
+
+		["name", "description"].forEach((attr) => {
+			if (imdbInfo[attr])
+				imdbInfo[attr] = _.escape(imdbInfo[attr]);
 		});
 
-		log.debug(imdbInfo);
+		_.each(imdbInfo, (value, key) => {
+			if (!value) {
+				log.warn(key + " has no value: '" + value + "'");
+			}
+		});
 
-		_.extend(title, imdbInfo);
+		_.extend(show, imdbInfo);
 	}
 
 	/**
