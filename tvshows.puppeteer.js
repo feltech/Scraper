@@ -1,4 +1,3 @@
-
 const puppeteer = require("puppeteer");
 const _ = require("lodash");
 const fs = require("fs");
@@ -10,7 +9,7 @@ const SimpleNodeLogger = require('simple-node-logger');
 const log = SimpleNodeLogger.createSimpleLogger({
 	timestampFormat: 'YYYY-MM-DD HH:mm:ss.SSS'
 });
-log.setLevel("debug");
+log.setLevel("info");
 
 let _eztvURL = "https://eztv.re/";
 
@@ -51,7 +50,11 @@ class Scraper {
 			if (show.url) {
 				log.debug("(Cached) IMDB link for '" + show.initialName + "' is " + show.url);
 			} else {
-				await this.imdbLink(show);
+				try {
+					await this.imdbLink(show);
+				} catch (e) {
+					log.warn(this.page.content());
+				}
 			}
 		}
 
@@ -65,6 +68,7 @@ class Scraper {
 			return show.url;
 		});
 
+		log.info(shows.length + " shows remaining after filtering for imdb link");
 		log.debug("finding imdb info for remaining " + shows.length + " shows");
 
 		for (let show of shows) {
@@ -85,8 +89,12 @@ class Scraper {
 			return show.description;
 		});
 
+		log.info(shows.length + " shows remaining after filtering for description");
+
 		// Should already be de-duped when scraping EZTV, but some slip the net.
 		shows = _.uniqBy(shows, 'url');
+
+		log.info(shows.length + " shows remaining after de-duplication");
 
 		if (shows.length === 0) {
 			log.info("Zero titles left after filtering");
@@ -218,7 +226,9 @@ class Scraper {
 		await this.page.goto(
 			"http://www.imdb.com/find?s=tt&ttype=tv&q=" + encodeURIComponent(title.name)
 		);
-		await this.page.waitForSelector("#main");
+		log.debug("Waiting for selector on " + "http://www.imdb.com/find?s=tt&ttype=tv&q=" +
+			encodeURIComponent(title.name));
+		await this.page.waitForSelector(".findHeader");
 
 		title.url = await this.page.evaluate(() => {
 			if ($("a[name='tt']").closest(".findSection").find("td.result_text > a").length === 0) {
@@ -279,49 +289,27 @@ class Scraper {
 					return els.map((el) => el.textContent.trim()).join(", ");
 				}
 
-				function $first(arr)
-				{
+				function $first(arr) {
 					return arr && arr[0] || "???";
 				}
 
-				try {
+				return {
+					duration: $texts($$(
+						'ul[data-testid="hero-title-block__metadata"] > li:nth-child(4)')),
 
-					return {
-						duration: $texts($$(
-							'ul[data-testid="hero-title-block__metadata"] > li:nth-child(4)')),
+					rating: $children(
+						"[data-testid='hero-rating-bar__aggregate-rating__score']"
+					).map((el) => parseFloat(el.textContent.trim(), 10))[0],
 
-						rating: $children(
-							"[data-testid='hero-rating-bar__aggregate-rating__score']"
-						).map((el) => parseFloat(el.textContent.trim(), 10))[0],
+					name: $q("[data-testid='hero-title-block__title']").textContent,
 
-						name: $q("[data-testid='hero-title-block__title']").textContent,
+					year: $texts($$(
+						'ul[data-testid="hero-title-block__metadata"] > li:nth-child(2) > a')),
 
-						year: $texts($$(
-							'ul[data-testid="hero-title-block__metadata"] > li:nth-child(2) > a')),
+					description: $q("[data-testid='plot-xl']").textContent.trim(),
 
-						description: $q("[data-testid='plot-xl']").textContent.trim(),
-
-						genre: $texts($children("[data-testid='genres']"))
-					};
-				} catch (e) {
-					console.warn("IMDB new layout failed, trying old layout", e);
-
-					return {
-						duration: $("#titleDetails > div > h4:contains('Runtime')").parent()
-							.find("time").text().trim(),
-						rating: num("div.ratingValue > strong > span"),
-						name: text("div.title_wrapper > h1"),
-						year: $first(/[0-9]{4}/.exec(
-							$("#titleDetails > div > h4:contains('Release Date')").parent().text()
-						)),
-						description: $("#titleStoryLine > div > p > span").text().trim(),
-						genre: $("#titleStoryLine > div > h4:contains('Genres')").parent().find("a").map(
-							function () {
-								return $(this).text().trim();
-							}
-						).toArray().join(", ")
-					};
-				}
+					genre: $texts($$("[data-testid='genres'] span"))
+				};
 			});
 		} catch (e) {
 			log.error(`Failed to parse IMDB page for "${show.initialName}": ${show.url} ... `, e);
