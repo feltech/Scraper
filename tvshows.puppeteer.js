@@ -231,15 +231,10 @@ class Scraper {
 		);
 		log.debug("Waiting for selector on " + "http://www.imdb.com/find?s=tt&ttype=tv&q=" +
 			encodeURIComponent(title.name));
-		await this.page.waitForSelector(".findHeader");
+		await this.page.waitForSelector(".ipc-metadata-list");
 
 		title.url = await this.page.evaluate(() => {
-			if ($("a[name='tt']").closest(".findSection").find("td.result_text > a").length === 0) {
-				return null;
-			}
-
-			return $("a[name='tt']").closest(".findSection").find(
-				"td.result_text > a").first().prop("href");
+			return document.querySelector("a.ipc-metadata-list-summary-item__t").href;
 		});
 
 		if (!title.url) {
