@@ -281,7 +281,8 @@ class Scraper {
 
 				return {
 					duration: $texts($$(
-						'ul[data-testid="hero-title-block__metadata"] > li:nth-child(4)')),
+						'li[data-testid="title-techspec_runtime"] > div'
+					)),
 
 					rating: $children(
 						"[data-testid='hero-rating-bar__aggregate-rating__score']"
