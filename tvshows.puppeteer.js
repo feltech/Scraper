@@ -258,14 +258,6 @@ class Scraper {
 			log.info("Parsing IMDB info for '" + show.name + "' from " + this.page.url());
 			imdbInfo = await this.page.evaluate(function () {
 
-				function text(selector) {
-					return $(selector).first().contents().not($(selector).children()).text().trim();
-				}
-
-				function num(selector) {
-					return parseFloat(text(selector), 10);
-				}
-
 				function $$(selector) {
 					return Array.from(document.querySelectorAll(selector));
 				}
@@ -285,10 +277,6 @@ class Scraper {
 
 				function $texts(els) {
 					return els.map((el) => el.textContent.trim()).join(", ");
-				}
-
-				function $first(arr) {
-					return arr && arr[0] || "???";
 				}
 
 				return {
