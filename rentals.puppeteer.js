@@ -139,7 +139,10 @@ class Scraper {
 			});
 			// Open new tab in browser.
 			this.page = await this.browser.newPage();
-			this.page.setViewport({width: 1280, height: 720});
+			await this.page.setUserAgent(
+				'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko)' +
+				' Chrome/78.0.3904.108 Safari/537.36');
+			await this.page.setViewport({width: 1280, height: 720});
 			// Log site console logs.
 			this.page.on('console', (message) => {
 				const type = message.type().substr(0, 3).toUpperCase();
@@ -150,11 +153,10 @@ class Scraper {
 		}
 	}
 
-
 	async charts() {
 		log.info("Opening officialcharts.com");
 		await this.page.goto(
-			"http://www.officialcharts.com/charts/film-on-video-chart/",
+			"https://www.officialcharts.com/charts/film-on-video-chart/",
 			{waitUntil: "domcontentloaded"});
 
 		log.info("Extracting titles");
@@ -174,19 +176,21 @@ class Scraper {
 		await this.page.goto(
 			"http://www.imdb.com/find?s=tt&ttype=ft&q=" + encodeURIComponent(title.name)
 		);
-		await this.page.waitForSelector("#main");
+		log.debug("Waiting for selector on " + "http://www.imdb.com/find?s=tt&ttype=ft&q=" +
+			encodeURIComponent(title.name));
+		try {
+			await this.page.waitForSelector(".ipc-metadata-list");
+		} catch (e) {
+			log.warn("Title not found in IMDB search: " + title.name);
+			return;
+		}
 
 		title.url = await this.page.evaluate(() => {
-			if ($("a[name='tt']").closest(".findSection").find("td.result_text > a").length === 0) {
-				return null;
-			}
-
-			return $("a[name='tt']").closest(".findSection").find(
-				"td.result_text > a").first().prop("href");
+			return document.querySelector("a.ipc-metadata-list-summary-item__t").href;
 		});
 
 		if (!title.url) {
-			log.info("IMDB link not found for '" + title.name + "'");
+			log.warn("IMDB link not found for '" + title.name + "'");
 		} else {
 			title.url = title.url.split("?")[0];
 			log.info("IMDB link for '" + title.name + "' is " + title.url);
@@ -205,14 +209,6 @@ class Scraper {
 
 			log.info("Parsing IMDB info for '" + show.name + "' from " + this.page.url());
 			imdbInfo = await this.page.evaluate(function () {
-
-				function text(selector) {
-					return $(selector).first().contents().not($(selector).children()).text().trim();
-				}
-
-				function num(selector) {
-					return parseFloat(text(selector), 10);
-				}
 
 				function $$(selector) {
 					return Array.from(document.querySelectorAll(selector));
@@ -235,49 +231,24 @@ class Scraper {
 					return els.map((el) => el.textContent.trim()).join(", ");
 				}
 
-				function $first(arr)
-				{
-					return arr && arr[0] || "???";
-				}
+				return {
+					duration: $texts($$(
+						'li[data-testid="title-techspec_runtime"] > div'
+					)),
 
-				try {
+					rating: $children(
+						"[data-testid='hero-rating-bar__aggregate-rating__score']"
+					).map((el) => parseFloat(el.textContent.trim(), 10))[0],
 
-					return {
-						duration: $texts($$(
-							'ul[data-testid="hero-title-block__metadata"] > li:nth-child(3)')),
+					name: $q("[data-testid='hero-title-block__title']").textContent,
 
-						rating: $children(
-							"[data-testid='hero-rating-bar__aggregate-rating__score']"
-						).map((el) => parseFloat(el.textContent.trim(), 10))[0],
+					year: $texts($$(
+						'ul[data-testid="hero-title-block__metadata"] > li:nth-child(1) > a')),
 
-						name: $q("[data-testid='hero-title-block__title']").textContent,
+					description: $q("[data-testid='plot-xl']").textContent.trim(),
 
-						year: $texts($$(
-							'ul[data-testid="hero-title-block__metadata"] > li:nth-child(1) > a')),
-
-						description: $q("[data-testid='plot-xl']").textContent.trim(),
-
-						genre: $texts($children("[data-testid='genres']"))
-					};
-				} catch (e) {
-					console.warn("IMDB new layout failed, trying old layout", e);
-
-					return {
-						duration: $("#titleDetails > div > h4:contains('Runtime')").parent()
-							.find("time").text().trim(),
-						rating: num("div.ratingValue > strong > span"),
-						name: text("div.title_wrapper > h1"),
-						year: $first(/[0-9]{4}/.exec(
-							$("#titleDetails > div > h4:contains('Release Date')").parent().text()
-						)),
-						description: $("#titleStoryLine > div > p > span").text().trim(),
-						genre: $("#titleStoryLine > div > h4:contains('Genres')").parent().find("a").map(
-							function () {
-								return $(this).text().trim();
-							}
-						).toArray().join(", ")
-					};
-				}
+					genre: $texts($$("[data-testid='genres'] span"))
+				};
 			});
 		} catch (e) {
 			log.error(`Failed to parse IMDB page for "${show.initialName}": ${show.url} ... `, e);
