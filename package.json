@@ -3,8 +3,6 @@
   "version": "1.0.0",
   "description": "casperjs scripts to scrape across sites and join useful info",
   "dependencies": {
-    "phantomjs": "*",
-    "casperjs": "^1.1.4",
     "episode-parser": "^1.2.0",
     "lodash": "^4.5.0",
     "simple-node-logger": "*",
