@@ -253,7 +253,7 @@ class Scraper {
 
 		try {
 			await this.page.waitForSelector(
-				"[data-testid='hero-title-block__title'], div.title_wrapper > h1");
+				"[data-testid='hero__pageTitle'], div.title_wrapper > h1");
 
 			log.info("Parsing IMDB info for '" + show.name + "' from " + this.page.url());
 			imdbInfo = await this.page.evaluate(function () {
@@ -288,10 +288,10 @@ class Scraper {
 						"[data-testid='hero-rating-bar__aggregate-rating__score']"
 					).map((el) => parseFloat(el.textContent.trim(), 10))[0],
 
-					name: $q("[data-testid='hero-title-block__title']").textContent,
+					name: $q("[data-testid='hero__pageTitle']").textContent,
 
 					year: $texts($$(
-						'ul[data-testid="hero-title-block__metadata"] > li:nth-child(2) > a')),
+						"[data-testid='hero__pageTitle'] + ul > li:nth-child(2) > a")),
 
 					description: $q("[data-testid='plot-xl']").textContent.trim(),
 
