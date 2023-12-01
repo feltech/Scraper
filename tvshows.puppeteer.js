@@ -11,7 +11,7 @@ const log = SimpleNodeLogger.createSimpleLogger({
 });
 log.setLevel("info");
 
-let _eztvURL = "https://eztv.re/";
+let _eztvURL = "https://eztvx.to/";
 
 class Scraper {
 
