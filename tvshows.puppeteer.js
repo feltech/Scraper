@@ -185,7 +185,7 @@ class Scraper {
 	}
 
 	async eztv() {
-		let url = _eztvURL,
+		let url = _eztvURL + "home",
 			titles = [],
 			pageTitles;
 
