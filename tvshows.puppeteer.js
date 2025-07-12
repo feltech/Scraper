@@ -176,7 +176,7 @@ class Scraper {
 			await this.page.setViewport({width: 1280, height: 720});
 			// Log site console logs.
 			this.page.on('console', (message) => {
-				const type = message.type().substr(0, 3).toUpperCase();
+				const type = message.type().substring(0, 3).toUpperCase();
 				log.debug(`---- Page: ${type} ${message.text()} ${message.location().url || ""}`);
 			});
 		} catch (e) {
@@ -193,11 +193,11 @@ class Scraper {
 		for (let pageNum = 0; pageNum <= this._numPages; pageNum++) {
 			log.debug("opening eztv page: " + url);
 
-			await this.page.goto(url, {waitUntil: "domcontentloaded"});
+			await this.page.goto(url, {waitUntil: "networkidle0"});
 
 			log.debug("extracting titles");
 
-			pageTitles = await this.page.evaluate(function () {
+			pageTitles = await this.page.evaluate(function () { // jshint ignore:line
 				return $("a.epinfo").map(function () {
 					return $(this).text().trim();
 				}).get();
