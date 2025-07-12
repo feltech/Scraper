@@ -295,7 +295,7 @@ class Scraper {
 
 					description: $q("[data-testid='plot-xl']").textContent.trim(),
 
-					genre: $texts($$("[data-testid='genres'] span"))
+					genre: $texts($$(".ipc-chip-list__scroller > a"))
 				};
 			});
 		} catch (e) {
@@ -366,7 +366,7 @@ if (require.main === module) {
 		// Allow time for logger to flush, then exit.
 		process.nextTick(() => process.exit());
 	}, (err) => {
-		log.error("Unhandled exception", err);
+		log.error("Unhandled exception: ", err);
 		// Allow time for logger to flush, then exit with error code.
 		process.nextTick(() => process.exit(1));
 	});

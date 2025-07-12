@@ -252,7 +252,7 @@ class Scraper {
 
 					description: $q("[data-testid='plot-xl']").textContent.trim(),
 
-					genre: $texts($$("[data-testid='genres'] span"))
+					genre: $texts($$(".ipc-chip-list__scroller > a"))
 				};
 			});
 		} catch (e) {
