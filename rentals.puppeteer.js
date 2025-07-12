@@ -161,12 +161,17 @@ class Scraper {
 
 		log.info("Extracting titles");
 		let titles = await this.page.evaluate(() => {
-			return $("table.chart-positions tr").not("[class]").map(function () {
-				return {
-					weeks: parseInt($("td", this).last().prev().text().trim(), 10),
-					name: $("div.title", this).text().trim()
-				};
-			}).toArray();
+			let values = [];
+			document.querySelectorAll(".description").forEach(function (el) {
+				values.push({
+					weeks: parseInt(el.querySelector("li.weeks > span").innerText, 10),
+					name: el.querySelectorAll("a.chart-name > span")[1].innerText
+				});
+			});
+			return values;
+		});
+		_(titles).each(function (title) {
+			title.name = _.map(title.name.split(" "), function (word) { return _.capitalize(word); }).join(" ");
 		});
 		return titles;
 	}
