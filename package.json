@@ -7,7 +7,7 @@
     "lodash": "^4.5.0",
     "simple-node-logger": "*",
     "moment": "*",
-    "puppeteer": "3.0",
+    "puppeteer": "*",
     "argparse": "*"
   },
   "repository": {
