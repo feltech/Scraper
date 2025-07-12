@@ -109,8 +109,8 @@ class Scraper {
 		log.debug("Generating html");
 
 		html = tmpl({
-			page: "movierentals", icon: "film", headerTitle: "Movie Rentals",
-			headerSubtitle: "overview of movie rentals rated greater than " + this._minRating.toFixed(1) +
+			page: "movierentals", icon: "film", headerTitle: "Movie Downloads",
+			headerSubtitle: "overview of movie downloads rated greater than " + this._minRating.toFixed(1) +
 				" from the last " + this._numWeeks + " weeks",
 			tableContent: html, listSrcURL: "http://www.officialcharts.com",
 			listSrcName: "officialcharts.com",
@@ -156,7 +156,7 @@ class Scraper {
 	async charts() {
 		log.info("Opening officialcharts.com");
 		await this.page.goto(
-			"https://www.officialcharts.com/charts/film-on-video-chart/",
+			"https://www.officialcharts.com/charts/Film-downloads-chart/",
 			{waitUntil: "domcontentloaded"});
 
 		log.info("Extracting titles");
@@ -289,11 +289,11 @@ if (require.main === module) {
 	const parser = new ArgumentParser({
 		version: '1.0.0',
 		addHelp: true,
-		description: "Scrape rentals from officialcharts.com, filter by week/rating, furnish with" +
+		description: "Scrape downloads from officialcharts.com, filter by week/rating, furnish with" +
 			" info from IMDB, then write html of results"
 	});
 	parser.addArgument("--weeks", {
-		help: "Max weeks of rentals to scrape",
+		help: "Max weeks of downloads to scrape",
 		type: "int",
 		defaultValue: 8
 	});
