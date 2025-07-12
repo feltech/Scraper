@@ -8,3 +8,4 @@
 /.idea
 /package-lock.json
 /shows.json
+/build_env/.direnv/
