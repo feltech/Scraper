@@ -134,12 +134,20 @@
             function updateLastModified() {
                 $.getJSON("<%= lastUpdatedFile %>").then(function (_data, _textStatus, jqXHR) {
                     var lastModified = new Date(jqXHR.getResponseHeader("Last-Modified"));
+                    var formattedDate = lastModified.toLocaleDateString(undefined, { 
+                        year: 'numeric', 
+                        month: 'long', 
+                        day: 'numeric' 
+                    }) + ' ' + lastModified.toLocaleTimeString(undefined, {
+                        timeZoneName: 'short'
+                    });
+
                     if (currModified === undefined) {
-                        $("#curr-modified").html(lastModified.toUTCString());
+                        $("#curr-modified").html(formattedDate);
                         currModified = lastModified;
                     } else if (lastModified.getTime() !== currModified.getTime()) {
                         $("#last-modified").html(
-                            " - updated " + lastModified.toUTCString() + " (reload to update)");
+                            " - updated " + formattedDate + " (reload to update)");
                     }
                 }).always(function () {
                     setTimeout(updateLastModified, 600000);
